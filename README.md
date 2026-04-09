@@ -1,17 +1,139 @@
 # Obsidian Claude Skills
 
-Claude Code slash commands (skills) for an Obsidian second brain. Each skill is a prompt that Claude Code loads when you type `/skill-name` in the terminal — turning Claude into a vault-aware assistant that reads, writes, and organizes your notes.
+Claude Code slash commands for an LLM-maintained Obsidian wiki. Instead of re-deriving knowledge on every question, Claude incrementally builds and maintains a persistent wiki — indexing every source you add, cross-linking related pages, and synthesizing answers from accumulated knowledge rather than scratch.
 
-## What This Is
+Inspired by the [LLM Wiki pattern](https://github.com/rushikeshjaisur11/obsidian-claude-skills/blob/master/llm-wiki.md).
 
-These skills connect Claude Code to an Obsidian vault so you can:
-- Start each day with your vault context surfaced
-- Convert PDFs and documents to full markdown notes automatically
-- Research topics and save structured notes with web sources
-- Do weekly reviews without leaving the terminal
-- Brain-dump freely and have Claude file everything in the right folder
+## The idea
 
-They work by placing `SKILL.md` files inside `.claude/skills/<name>/` in your vault root. Claude Code discovers them automatically and exposes them as `/name` slash commands.
+Most LLM + notes setups work like RAG: upload files, retrieve chunks at query time, generate an answer. Nothing is built up. Ask a question tomorrow and Claude re-derives it from scratch.
+
+This is different. Claude maintains a **persistent wiki** — a `wiki/index.md` that catalogs every page and a `wiki/log.md` that records every operation. When you add a source, Claude reads it, extracts key insights, writes a note, and updates cross-links across related pages. When you ask a question, Claude reads the index first, finds the relevant pages, and synthesizes from compiled knowledge — not raw retrieval.
+
+The wiki gets richer with every source you add and every question you ask. Cross-references are already there. Contradictions have been flagged. The synthesis already reflects everything you've read.
+
+## Skills
+
+### `/ingest` — Add any source to the wiki
+
+The unified entry point for all knowledge ingestion. Replaces `/research`, `/study`, and `/file-intel`.
+
+**Modes** (auto-detected from argument):
+- `/ingest https://...` — fetch URL via defuddle, summarize, classify, write note
+- `/ingest paper.pdf` — read file fully, write complete markdown note
+- `/ingest inbox/` — batch-process folder with parallel subagents
+- `/ingest research: <topic>` — web search + synthesize + write research note
+- `/ingest study: <topic>` — scaffold study note from existing vault knowledge
+- `/ingest` — asks what you're adding
+
+Every mode ends the same way: note written → 3–5 related pages cross-linked → `wiki/index.md` updated → `wiki/log.md` appended.
+
+---
+
+### `/query` — Ask the wiki
+
+Reads `wiki/index.md` first to find relevant pages, then synthesizes an answer with `[[wikilink]]` citations. Flags contradictions and knowledge gaps. Offers to file the answer back as a new wiki page so your explorations compound.
+
+Supports output formats: inline answer, comparison table, Marp slide deck, JSON canvas.
+
+---
+
+### `/lint` — Full vault health-check
+
+Scans the vault and reports on both **file system** and **wiki knowledge** health. Report first, execute after your confirmation.
+
+File system: loose root files, unprocessed inbox, misplaced files, duplicates, empty folders, junk file types.
+
+Wiki knowledge: pages missing from index, broken wikilinks, orphan pages (nothing points to them), concept stubs (concepts mentioned in prose but lacking their own page), contradictions between pages, actionable search suggestions for gaps.
+
+Writes `wiki/lint-YYYY-MM-DD.md` with full findings. Replaces `/organize-vault`.
+
+---
+
+### `/daily` — Start your day
+
+Reads or creates today's daily note, shows the last 5 wiki log entries (what was ingested/queried/linted recently), checks inbox for unprocessed files, surfaces carry-overs from recent days, and asks what you're working on.
+
+---
+
+### `/tldr` — End-of-session summary
+
+Extracts decisions, key things to remember, and next actions from the current session. Saves to the most relevant folder. Asks if any insights are worth filing permanently to the wiki.
+
+---
+
+### `/weekly` — Weekly review
+
+Reads all daily notes from the past 7 days. Writes a `daily/weekly-YYYY-MM-DD.md` with: What I Learned, What I Built, Blockers & Open Questions, and Top 3 Goals for Next Week.
+
+---
+
+### `/braindump` — Unstructured capture
+
+You talk freely, Claude organizes. Parses your dump into categories (`learning/`, `research/`, `projects/`, `personal/`, today's daily note), shows the plan, and writes after confirmation.
+
+---
+
+### `/vault-setup` — First-time vault configurator
+
+One free-text question about who you are. Infers your role and pain points. Previews a vault structure before building anything. Creates folders, `CLAUDE.md`, skill files, and wires vault context into Claude Code globally.
+
+---
+
+### Utility skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/defuddle` | Fetch any URL as clean markdown (used internally by `/ingest`) |
+| `/obsidian-cli` | Direct vault operations via CLI (read, create, search, append, tasks) |
+| `/obsidian-markdown` | Reference for Obsidian-specific syntax (wikilinks, callouts, embeds, frontmatter) |
+
+---
+
+## Wiki infrastructure
+
+Two files anchor the wiki. Create these in your vault root before using `/ingest` and `/query`.
+
+### `wiki/index.md`
+
+The master catalog. Every page gets an entry here. Claude reads this first on every query.
+
+```markdown
+# Wiki Index
+
+**Updated:** YYYY-MM-DD
+
+## Research
+- [[research/topic-name]] — one-line summary (YYYY-MM-DD)
+
+## Learning
+### Python
+- [[learning/python/topic]] — one-line summary
+
+## Data Engineering
+- [[data-engineering/topic]] — one-line summary
+```
+
+### `wiki/log.md`
+
+Append-only activity log. Records every ingest, query, and lint operation.
+
+```markdown
+# Wiki Log
+
+Format: `## [YYYY-MM-DD] <operation> | <title>`
+Operations: ingest | query | lint
+Search: grep "^## \[" wiki/log.md | tail -10
+
+---
+
+## [2026-04-10] ingest | MCP Architecture Patterns
+- Note: [[research/mcp-architecture]]
+- Updated: [[research/mcp-tools]], [[learning/fastapi/async-patterns]]
+- Mode: url
+```
+
+---
 
 ## Setup
 
@@ -29,18 +151,44 @@ mkdir -p .claude/skills
 cp -r path/to/obsidian-claude-skills/skills/* .claude/skills/
 ```
 
-Or clone directly into your vault:
+### 3. Create wiki infrastructure
 
 ```bash
-git clone https://github.com/rushikeshjaisur11/obsidian-claude-skills /tmp/ocs
-cp -r /tmp/ocs/skills/* .claude/skills/
+mkdir -p wiki
 ```
 
-### 3. Add a CLAUDE.md to your vault root
+Create `wiki/index.md` and `wiki/log.md` with the templates above.
 
-Create `.../your-vault/CLAUDE.md` describing who you are and how your vault is structured. Claude reads this at the start of every session. See the [vault-setup](#vault-setup) skill to generate one automatically.
+### 4. Create CLAUDE.md
 
-### 4. Wire it to Claude Code globally (optional but recommended)
+Add a `CLAUDE.md` at your vault root describing who you are, your vault structure, and the wiki schema. Minimum:
+
+```markdown
+# CLAUDE.md
+
+## Who I Am
+[2-3 sentences about your role and what this vault tracks]
+
+## Vault Structure
+[folder tree with one-line purpose per folder]
+
+## Wiki Schema
+- `wiki/index.md` — master catalog; read this first on any query
+- `wiki/log.md` — append-only activity log
+- Every new note → indexed in wiki/index.md (newest-first per section)
+- Every operation → appended to wiki/log.md
+
+## Available Commands
+- /ingest  — add any source to the wiki
+- /query   — ask the wiki; file answers back
+- /lint    — full vault health-check + cleanup
+- /daily   — start the day
+- /tldr    — end-of-session summary
+- /braindump — quick capture
+- /weekly  — weekly review
+```
+
+### 5. Wire globally (optional but recommended)
 
 Append to `~/.claude/CLAUDE.md`:
 
@@ -49,165 +197,54 @@ Append to `~/.claude/CLAUDE.md`:
 At the start of every session, read /absolute/path/to/your-vault/CLAUDE.md for context about who I am, my work, and my conventions.
 ```
 
-Now every Claude Code session — anywhere on your machine — has your vault context.
+Now every Claude Code session on your machine has your vault context.
 
-## Skills
+### 6. Enable defuddle (optional)
 
-### `/daily`
-**Start your day with vault context.**
-
-Reads or creates today's daily note (`daily/YYYY-MM-DD.md`), checks `inbox/` for unprocessed files, surfaces carry-overs from the last 3 daily notes, and asks what you're working on today.
-
-```
-/daily
-```
-
----
-
-### `/study`
-**Scaffold a structured study note on any topic.**
-
-Searches your vault for existing related notes, then creates a new `learning/<topic>.md` with sections: What I Already Know, Key Concepts, How It Works, Use Cases, Code/Examples, Questions & Gaps, Resources, Related Notes.
-
-```
-/study
-→ What topic are you studying? [LangGraph checkpointing]
-```
-
----
-
-### `/research`
-**Web-search a topic + synthesize into a vault note.**
-
-Searches your vault for existing knowledge, runs 3+ web searches for latest developments, synthesizes everything, and writes a full `research/<topic>.md` with Summary, Key Concepts, How It Works, Use Cases, Current State, Pros/Cons, Sources, and Open Questions. Cross-links to existing vault notes.
-
-```
-/research
-→ What topic do you want to research? [MCP protocol internals]
-```
-
----
-
-### `/file-intel`
-**Convert PDFs and documents in `inbox/` to full markdown notes.**
-
-Processes any file type (PDF, PPTX, XLSX, DOCX, CSV, JSON, TXT) into a complete `.md` note — not a summary, the full content as structured markdown. Places each note in the right vault folder (`learning/`, `research/`, `data-engineering/`, `resources/`, `personal/`). Supports parallel or sequential processing. Asks to delete originals when done.
-
-```
-/file-intel
-→ Which folder? [inbox/]
-→ Parallel or sequential? [sequential]
-```
-
----
-
-### `/weekly`
-**Weekly review — summarize the week, set next week's goals.**
-
-Reads all daily notes from the past 7 days, writes a `daily/weekly-YYYY-MM-DD.md` with: What I Learned, What I Built, Blockers & Open Questions, Inbox Status, and Top 3 Goals for Next Week. Suggests filing any loose captures from daily notes.
-
-```
-/weekly
-```
-
----
-
-### `/braindump`
-**Unstructured capture — Claude organizes it.**
-
-You talk freely (messy is fine), Claude parses the content and categorizes it into: `learning/`, `research/`, `projects/`, `data-engineering/`, `personal/`, or today's `daily/` note. Shows the plan before writing anything.
-
-```
-/braindump
-→ Go ahead — dump everything on your mind.
-```
-
----
-
-### `/tldr`
-**Save a summary of this conversation to the vault.**
-
-Extracts decisions made, key things to remember, and next actions from the current session. Saves as a clean markdown note to the most relevant folder based on topic. Also updates `memory.md` at the vault root with any new patterns or preferences.
-
-```
-/tldr
-```
-
----
-
-### `/vault-setup`
-**Interactive vault configurator — builds a personalized vault from scratch.**
-
-Asks one free-text question about who you are and what you want to track. Infers your role, pain points, and scope. Previews a vault structure before building anything. Creates folders, `CLAUDE.md`, and all skill files. Optionally wires vault context into Claude Code globally.
-
-Run from inside the folder you want to become your vault:
+Required for URL ingestion:
 
 ```bash
-cd ~/my-second-brain
-claude
-/vault-setup
+npm install -g defuddle
 ```
 
 ---
 
-### `/defuddle`
-**Extract clean markdown from any web page.**
-
-Uses [Defuddle CLI](https://github.com/kepano/defuddle) to strip navigation, ads, and clutter from web pages and return clean markdown. More token-efficient than `WebFetch` for articles, docs, and blog posts.
-
-```
-/defuddle
-→ defuddle parse <url> --md
-```
-
-Requires: `npm install -g defuddle`
-
----
-
-### `/obsidian-markdown`
-**Write valid Obsidian Flavored Markdown.**
-
-Reference skill for Obsidian-specific syntax: wikilinks (`[[Note]]`), embeds (`![[file]]`), callouts (`> [!note]`), frontmatter properties, tags, comments (`%%hidden%%`), LaTeX math, and Mermaid diagrams. Use when creating or editing `.md` files that need to render correctly in Obsidian.
-
----
-
-## Vault Structure (Recommended)
+## Vault structure
 
 ```
 your-vault/
-├── inbox/              Drop zone — files land here, /file-intel processes them
+├── wiki/
+│   ├── index.md        Master catalog — updated on every ingest
+│   └── log.md          Activity log — ingest | query | lint entries
+├── inbox/              Drop zone — /ingest inbox/ to process
 ├── daily/              Daily notes + weekly reviews
-├── learning/           Study notes, course content, converted PDFs
-├── research/           Deep dives, papers, /research output
-├── data-engineering/   Work notes, pipelines, tool references
-├── resources/          Bookmarks, cheatsheets, reference material
-├── projects/           Active work with status and next actions
+├── research/           Deep dives, papers, /ingest research: output
+├── learning/           Study notes, courses, /ingest study: output
+├── data-engineering/   Pipelines, tools, schemas
+├── projects/           Active work
 ├── personal/           Goals, habits, reflections
 ├── archive/            Completed work — never deleted, just moved
-├── scripts/            Utility scripts for automation
-├── outputs/            Generated summaries, exports
-├── CLAUDE.md           Your identity + vault conventions (read by Claude every session)
+├── CLAUDE.md           Your identity + vault schema (read every session)
 └── .claude/
     └── skills/         All skill files live here
 ```
 
-## How Skills Work
+---
 
-Each skill is a `SKILL.md` file in `.claude/skills/<name>/`. When you type `/name` in Claude Code, it loads that file as a prompt and follows its instructions with access to all your vault files.
+## How skills work
 
-Skills can:
-- Read and write files in your vault
-- Search across folders with Glob/Grep
-- Use WebSearch to pull live information
-- Ask follow-up questions
-- Remember preferences across sessions via memory files
+Each skill is a `SKILL.md` file in `.claude/skills/<name>/`. When you type `/name` in Claude Code, it loads that file as a system prompt and follows its instructions with full access to your vault files, web search, and subagent spawning.
+
+Skills can read and write files, search across folders, fetch URLs, spawn parallel subagents for batch work, and ask follow-up questions.
+
+---
 
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI
 - Obsidian (any version)
-- For `/defuddle`: `npm install -g defuddle`
-- For `/research`: Claude Code with web search enabled
+- For `/ingest` URL mode: `npm install -g defuddle`
+- For `/ingest research:` mode: Claude Code with web search enabled
 
 ## License
 
