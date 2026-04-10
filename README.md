@@ -4,7 +4,7 @@ Claude Code slash commands that build and maintain a persistent, compounding kno
 
 Works with **Obsidian**, **VS Code + Foam**, **Logseq**, or any directory of markdown files.
 
-Inspired by the [LLM Wiki pattern](https://github.com/rushikeshjaisur11/obsidian-claude-skills/blob/master/llm-wiki.md).
+Inspired by the [Andrej Karpathy’s LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
 
 ---
 
