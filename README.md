@@ -1,22 +1,28 @@
-# Obsidian Claude Skills
+# LLM Wiki
 
-Claude Code slash commands for an LLM-maintained Obsidian wiki. Instead of re-deriving knowledge on every question, Claude incrementally builds and maintains a persistent wiki — indexing every source you add, cross-linking related pages, and synthesizing answers from accumulated knowledge rather than scratch.
+Claude Code slash commands that build and maintain a persistent, compounding knowledge base in any markdown vault.
+
+Works with **Obsidian**, **VS Code + Foam**, **Logseq**, or any directory of markdown files.
 
 Inspired by the [LLM Wiki pattern](https://github.com/rushikeshjaisur11/obsidian-claude-skills/blob/master/llm-wiki.md).
 
+---
+
 ## The idea
 
-Most LLM + notes setups work like RAG: upload files, retrieve chunks at query time, generate an answer. Nothing is built up. Ask a question tomorrow and Claude re-derives it from scratch.
+Most LLM + notes setups work like RAG: upload files, retrieve chunks at query time, generate an answer. Nothing accumulates. Ask a question tomorrow and Claude re-derives it from scratch.
 
 This is different. Claude maintains a **persistent wiki** — a `wiki/index.md` that catalogs every page and a `wiki/log.md` that records every operation. When you add a source, Claude reads it, extracts key insights, writes a note, and updates cross-links across related pages. When you ask a question, Claude reads the index first, finds the relevant pages, and synthesizes from compiled knowledge — not raw retrieval.
 
 The wiki gets richer with every source you add and every question you ask. Cross-references are already there. Contradictions have been flagged. The synthesis already reflects everything you've read.
 
+---
+
 ## Skills
 
 ### `/ingest` — Add any source to the wiki
 
-The unified entry point for all knowledge ingestion. Replaces `/research`, `/study`, and `/file-intel`.
+The unified entry point for all knowledge ingestion.
 
 **Modes** (auto-detected from argument):
 - `/ingest https://...` — fetch URL via defuddle, summarize, classify, write note
@@ -34,7 +40,7 @@ Every mode ends the same way: note written → 3–5 related pages cross-linked 
 
 Reads `wiki/index.md` first to find relevant pages, then synthesizes an answer with `[[wikilink]]` citations. Flags contradictions and knowledge gaps. Offers to file the answer back as a new wiki page so your explorations compound.
 
-Supports output formats: inline answer, comparison table, Marp slide deck, JSON canvas.
+Supports output formats: inline answer, comparison table, Marp slide deck, Mermaid diagram (all vaults), JSON canvas (Obsidian only).
 
 ---
 
@@ -46,7 +52,9 @@ File system: loose root files, unprocessed inbox, misplaced files, duplicates, e
 
 Wiki knowledge: pages missing from index, broken wikilinks, orphan pages (nothing points to them), concept stubs (concepts mentioned in prose but lacking their own page), contradictions between pages, actionable search suggestions for gaps.
 
-Writes `wiki/lint-YYYY-MM-DD.md` with full findings. Replaces `/organize-vault`.
+For Obsidian users, broken links and orphan detection use `obsidian-cli` natively (most accurate — handles aliases and renamed files). All other vaults use Grep.
+
+Writes `wiki/lint-YYYY-MM-DD.md` with full findings.
 
 ---
 
@@ -76,7 +84,7 @@ You talk freely, Claude organizes. Parses your dump into categories (`learning/`
 
 ### `/vault-setup` — First-time vault configurator
 
-One free-text question about who you are. Infers your role and pain points. Previews a vault structure before building anything. Creates folders, `CLAUDE.md`, skill files, and wires vault context into Claude Code globally.
+One free-text question about who you are, then asks which markdown tool you use. Infers your role and pain points. Previews a vault structure before building anything. Creates folders, `wiki/index.md`, `wiki/log.md`, `CLAUDE.md`, and installs the right skill set for your vault tool. Wires vault context into Claude Code globally.
 
 ---
 
@@ -85,14 +93,29 @@ One free-text question about who you are. Infers your role and pain points. Prev
 | Skill | Purpose |
 |-------|---------|
 | `/defuddle` | Fetch any URL as clean markdown (used internally by `/ingest`) |
-| `/obsidian-cli` | Direct vault operations via CLI (read, create, search, append, tasks) |
-| `/obsidian-markdown` | Reference for Obsidian-specific syntax (wikilinks, callouts, embeds, frontmatter) |
+| `/obsidian-cli` | Direct vault operations via Obsidian CLI (Obsidian only) |
+| `/obsidian-markdown` | Reference for Obsidian-specific syntax: wikilinks, callouts, embeds, frontmatter (Obsidian only) |
+
+---
+
+## Vault compatibility
+
+| Feature | Obsidian | VS Code + Foam | Logseq | Plain markdown |
+|---------|----------|----------------|--------|----------------|
+| Core skills (ingest, query, lint, daily, tldr, braindump, weekly) | ✓ | ✓ | ✓ | ✓ |
+| `[[folder/slug]]` wikilinks | ✓ (graph-clickable) | ✓ (Foam resolves) | ✓ | ✓ (text only) |
+| YAML frontmatter | ✓ (Properties panel) | ✓ | ✓ | ✓ |
+| `> [!callout]` syntax | ✓ (native) | degrades gracefully | degrades gracefully | degrades gracefully |
+| Canvas output in /query | ✓ (JSON canvas) | Mermaid fallback | Mermaid fallback | Mermaid fallback |
+| Lint broken links | ✓ (`obsidian unresolved`) | ✓ (Grep) | ✓ (Grep) | ✓ (Grep) |
+| Lint orphan detection | ✓ (`obsidian backlinks`) | ✓ (Grep) | ✓ (Grep) | ✓ (Grep) |
+| obsidian-cli skill | ✓ | — | — | — |
 
 ---
 
 ## Wiki infrastructure
 
-Two files anchor the wiki. Create these in your vault root before using `/ingest` and `/query`.
+Two files anchor the wiki. `/vault-setup` creates these automatically, or create them manually.
 
 ### `wiki/index.md`
 
@@ -135,6 +158,28 @@ Search: grep "^## \[" wiki/log.md | tail -10
 
 ---
 
+## Repo structure
+
+```
+skills/
+├── core/               Installed for ALL vault types
+│   ├── ingest/
+│   ├── query/
+│   ├── lint/
+│   ├── daily/
+│   ├── tldr/
+│   ├── braindump/
+│   ├── weekly/
+│   ├── defuddle/
+│   └── vault-setup/
+└── extras/
+    └── obsidian/       Installed ONLY for Obsidian users
+        ├── obsidian-cli/
+        └── obsidian-markdown/
+```
+
+---
+
 ## Setup
 
 ### 1. Install Claude Code
@@ -143,40 +188,46 @@ Search: grep "^## \[" wiki/log.md | tail -10
 npm install -g @anthropic-ai/claude-code
 ```
 
-### 2. Copy skills to your vault
+### 2. Run `/vault-setup` (recommended)
+
+From inside your vault folder:
 
 ```bash
-# From inside your Obsidian vault root
-mkdir -p .claude/skills
-cp -r path/to/obsidian-claude-skills/skills/* .claude/skills/
+cd your-vault
+claude
 ```
 
-### 3. Create wiki infrastructure
+Then type `/vault-setup`. It will ask who you are and which tool you use, then build everything.
+
+### 3. Manual setup (alternative)
 
 ```bash
-mkdir -p wiki
+# From inside your vault root
+mkdir -p wiki .claude/skills
+
+# Install core skills (all vault types)
+cp -r path/to/llm-wiki/skills/core/* .claude/skills/
+
+# Obsidian only — also install extras
+cp -r path/to/llm-wiki/skills/extras/obsidian/* .claude/skills/
 ```
 
 Create `wiki/index.md` and `wiki/log.md` with the templates above.
 
-### 4. Create CLAUDE.md
-
-Add a `CLAUDE.md` at your vault root describing who you are, your vault structure, and the wiki schema. Minimum:
-
+Create `CLAUDE.md` with at minimum:
 ```markdown
 # CLAUDE.md
 
 ## Who I Am
 [2-3 sentences about your role and what this vault tracks]
 
-## Vault Structure
-[folder tree with one-line purpose per folder]
+## Vault Tool
+vault-tool: obsidian   <!-- obsidian | foam | logseq | markdown | other -->
 
 ## Wiki Schema
 - `wiki/index.md` — master catalog; read this first on any query
 - `wiki/log.md` — append-only activity log
-- Every new note → indexed in wiki/index.md (newest-first per section)
-- Every operation → appended to wiki/log.md
+- Wikilink format: [[folder/slug]] (path-qualified)
 
 ## Available Commands
 - /ingest  — add any source to the wiki
@@ -188,7 +239,7 @@ Add a `CLAUDE.md` at your vault root describing who you are, your vault structur
 - /weekly  — weekly review
 ```
 
-### 5. Wire globally (optional but recommended)
+### 4. Wire globally (optional but recommended)
 
 Append to `~/.claude/CLAUDE.md`:
 
@@ -199,7 +250,7 @@ At the start of every session, read /absolute/path/to/your-vault/CLAUDE.md for c
 
 Now every Claude Code session on your machine has your vault context.
 
-### 6. Enable defuddle (optional)
+### 5. Enable defuddle (optional)
 
 Required for URL ingestion:
 
@@ -209,42 +260,13 @@ npm install -g defuddle
 
 ---
 
-## Vault structure
-
-```
-your-vault/
-├── wiki/
-│   ├── index.md        Master catalog — updated on every ingest
-│   └── log.md          Activity log — ingest | query | lint entries
-├── inbox/              Drop zone — /ingest inbox/ to process
-├── daily/              Daily notes + weekly reviews
-├── research/           Deep dives, papers, /ingest research: output
-├── learning/           Study notes, courses, /ingest study: output
-├── data-engineering/   Pipelines, tools, schemas
-├── projects/           Active work
-├── personal/           Goals, habits, reflections
-├── archive/            Completed work — never deleted, just moved
-├── CLAUDE.md           Your identity + vault schema (read every session)
-└── .claude/
-    └── skills/         All skill files live here
-```
-
----
-
-## How skills work
-
-Each skill is a `SKILL.md` file in `.claude/skills/<name>/`. When you type `/name` in Claude Code, it loads that file as a system prompt and follows its instructions with full access to your vault files, web search, and subagent spawning.
-
-Skills can read and write files, search across folders, fetch URLs, spawn parallel subagents for batch work, and ask follow-up questions.
-
----
-
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI
-- Obsidian (any version)
+- Any markdown vault (Obsidian, VS Code + Foam, Logseq, or plain files)
 - For `/ingest` URL mode: `npm install -g defuddle`
 - For `/ingest research:` mode: Claude Code with web search enabled
+- For Obsidian `/lint` native accuracy: Obsidian CLI enabled (Settings → General → Command Line Interface)
 
 ## License
 

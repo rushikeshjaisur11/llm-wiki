@@ -39,10 +39,29 @@ Plan: consolidate into `archive/outputs/master-summary.md`, delete originals.
 Compare all `.md` files in knowledge folders against `wiki/index.md`. List pages missing from the index.
 
 **2b. Broken wikilinks**
-`Grep` for `\[\[.*\]\]` patterns across all vault `.md` files. Check each target exists. List broken ones with the containing file.
+Read `vault-tool` from CLAUDE.md. Branch:
+
+**If vault-tool = obsidian:**
+Run: `obsidian unresolved verbose`
+This returns all unresolved links with the files that contain them.
+If Obsidian is not running, fall back to Grep method below.
+
+**All other vaults (or Obsidian fallback):**
+Grep for all `[[link]]` patterns: `grep -roh "\[\[.*?\]\]" <vault-root> --include="*.md"`
+For each link, strip `[[` `]]` and check if the target file exists. List broken ones with the containing file.
 
 **2c. Orphan pages**
-Find pages with zero inbound links (nothing in the vault points to them). Use `obsidian backlinks` or Grep.
+Read `vault-tool` from CLAUDE.md. Branch:
+
+**If vault-tool = obsidian:**
+Use obsidian-cli (most accurate — handles aliases and renamed files):
+`obsidian backlinks file="<note-name>"`
+If Obsidian is not running, fall back to Grep method below.
+
+**All other vaults (or Obsidian fallback):**
+For each `.md` file, get the stem (filename without `.md`).
+Run: `grep -rl "\[\[<stem>\]\]" <vault-root> --include="*.md"`
+If no results besides the file itself → orphan.
 
 **2d. Concept stubs**
 Scan all pages for concept names appearing in prose 2+ times across multiple pages but lacking their own wiki page. List as candidates for new pages.
