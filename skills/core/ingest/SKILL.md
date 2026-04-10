@@ -32,7 +32,7 @@ Vault root: read from CLAUDE.md or use the current working directory.
    - `learning/` — guides, tutorials, how-tos, courses
    - (use other folders per your CLAUDE.md vault structure)
 4. Write `<folder>/<slug>.md` (slug = title lowercased, spaces → hyphens) with standard frontmatter + content
-5. If the article contains images: read text first, then view referenced images separately. Remind user: use Obsidian "Download attachments" hotkey (Ctrl+Shift+D) to save images locally.
+5. If the article contains images: read text first, then view referenced images separately. For offline storage, download images to an `assets/` folder in your vault. Obsidian users: Settings → Files → Attachment folder path = "assets/", then use "Download attachments for current file" hotkey.
 6. → **[Wiki Update]**
 
 ---
@@ -56,7 +56,7 @@ Vault root: read from CLAUDE.md or use the current working directory.
 
    Subagent prompt template (fill in placeholders):
    ```
-   Process a single file for an Obsidian vault.
+   Process a single file for a markdown wiki vault.
    File: <ABSOLUTE_PATH> | Date: <TODAY> | Vault root: <VAULT_ROOT>
 
    Step 1: Read the COMPLETE file.

@@ -15,7 +15,7 @@ Infer from the question or ask if ambiguous:
 | "as a note" / deep synthesis | File as `research/<slug>.md` |
 | "compare" / "vs" / "difference between" | Markdown comparison table |
 | "slides" / "presentation" / "deck" | Marp slide deck |
-| "map" / "canvas" / "visual" | JSON canvas via `/json-canvas` skill |
+| "map" / "canvas" / "visual" | Obsidian: JSON canvas via `/json-canvas` skill. Other vaults: Mermaid diagram in a fenced code block. |
 
 ---
 
