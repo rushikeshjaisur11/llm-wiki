@@ -70,18 +70,6 @@ Extracts decisions, key things to remember, and next actions from the current se
 
 ---
 
-### `/weekly` — Weekly review
-
-Reads all daily notes from the past 7 days. Writes a `daily/weekly-YYYY-MM-DD.md` with: What I Learned, What I Built, Blockers & Open Questions, and Top 3 Goals for Next Week.
-
----
-
-### `/braindump` — Unstructured capture
-
-You talk freely, Claude organizes. Parses your dump into categories (`learning/`, `research/`, `projects/`, `personal/`, today's daily note), shows the plan, and writes after confirmation.
-
----
-
 ### `/vault-setup` — First-time vault configurator
 
 One free-text question about who you are, then asks which markdown tool you use. Infers your role and pain points. Previews a vault structure before building anything. Creates folders, `wiki/index.md`, `wiki/log.md`, `CLAUDE.md`, and installs the right skill set for your vault tool. Wires vault context into Claude Code globally.
@@ -93,8 +81,11 @@ One free-text question about who you are, then asks which markdown tool you use.
 | Skill | Purpose |
 |-------|---------|
 | `/defuddle` | Fetch any URL as clean markdown (used internally by `/ingest`) |
+| `/graphbuild` | Rebuild the wiki knowledge graph from scratch — run after bulk ingests or when community assignments need refreshing |
 | `/obsidian-cli` | Direct vault operations via Obsidian CLI (Obsidian only) |
 | `/obsidian-markdown` | Reference for Obsidian-specific syntax: wikilinks, callouts, embeds, frontmatter (Obsidian only) |
+| `/obsidian-bases` | Create and edit Obsidian Bases `.base` files — table/card views, filters, formulas (Obsidian only) |
+| `/json-canvas` | Create and edit JSON Canvas `.canvas` files — visual maps, mind maps, flowcharts (Obsidian only) |
 
 ---
 
@@ -102,7 +93,7 @@ One free-text question about who you are, then asks which markdown tool you use.
 
 | Feature | Obsidian | VS Code + Foam | Logseq | Plain markdown |
 |---------|----------|----------------|--------|----------------|
-| Core skills (ingest, query, lint, daily, tldr, braindump, weekly) | ✓ | ✓ | ✓ | ✓ |
+| Core skills (ingest, query, lint, daily, tldr, defuddle, graphbuild, vault-setup) | ✓ | ✓ | ✓ | ✓ |
 | `[[folder/slug]]` wikilinks | ✓ (graph-clickable) | ✓ (Foam resolves) | ✓ | ✓ (text only) |
 | YAML frontmatter | ✓ (Properties panel) | ✓ | ✓ | ✓ |
 | `> [!callout]` syntax | ✓ (native) | degrades gracefully | degrades gracefully | degrades gracefully |
@@ -110,6 +101,8 @@ One free-text question about who you are, then asks which markdown tool you use.
 | Lint broken links | ✓ (`obsidian unresolved`) | ✓ (Grep) | ✓ (Grep) | ✓ (Grep) |
 | Lint orphan detection | ✓ (`obsidian backlinks`) | ✓ (Grep) | ✓ (Grep) | ✓ (Grep) |
 | obsidian-cli skill | ✓ | — | — | — |
+| obsidian-bases skill | ✓ | — | — | — |
+| json-canvas skill | ✓ | — | — | — |
 
 ---
 
@@ -168,14 +161,15 @@ skills/
 │   ├── lint/
 │   ├── daily/
 │   ├── tldr/
-│   ├── braindump/
-│   ├── weekly/
 │   ├── defuddle/
+│   ├── graphbuild/
 │   └── vault-setup/
 └── extras/
     └── obsidian/       Installed ONLY for Obsidian users
         ├── obsidian-cli/
-        └── obsidian-markdown/
+        ├── obsidian-markdown/
+        ├── obsidian-bases/
+        └── json-canvas/
 ```
 
 ---
@@ -230,13 +224,12 @@ vault-tool: obsidian   <!-- obsidian | foam | logseq | markdown | other -->
 - Wikilink format: [[folder/slug]] (path-qualified)
 
 ## Available Commands
-- /ingest  — add any source to the wiki
-- /query   — ask the wiki; file answers back
-- /lint    — full vault health-check + cleanup
-- /daily   — start the day
-- /tldr    — end-of-session summary
-- /braindump — quick capture
-- /weekly  — weekly review
+- /ingest      — add any source to the wiki
+- /query       — ask the wiki; file answers back
+- /lint        — full vault health-check + cleanup
+- /daily       — start the day
+- /tldr        — end-of-session summary
+- /graphbuild  — rebuild wiki knowledge graph
 ```
 
 ### 4. Wire globally (optional but recommended)
