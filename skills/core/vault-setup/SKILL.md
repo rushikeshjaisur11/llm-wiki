@@ -1,13 +1,11 @@
 ---
 name: vault-setup
-description: First-time vault configurator. Asks who you are and which markdown tool you use, then builds a personalized vault structure, CLAUDE.md, and installs the right skill set. Works with Obsidian, VS Code + Foam, Logseq, or plain markdown.
+description: Interactive Obsidian vault configurator. Asks the user to describe themselves in free text, then builds a personalized vault structure, CLAUDE.md, and slash commands directly in the current directory.
 ---
 
-# Vault Setup — First-Time Configurator
+# Vault Setup — Obsidian Configurator
 
-Run from INSIDE the folder you want to become your vault.
-
----
+Run from INSIDE the folder you want to become your Obsidian vault.
 
 ## STEP 1 — One question, free text
 
@@ -28,25 +26,7 @@ No need to be formal. A few sentences is enough.
 
 ---
 
-## STEP 2 — Ask which vault tool they use
-
-After reading their free-text answer, ask:
-
-```
-Which tool do you use for your vault?
-
-1. Obsidian
-2. VS Code + Foam
-3. Logseq
-4. Plain markdown (any editor)
-5. Other
-```
-
-Store the choice as `vault_tool` (one of: obsidian | foam | logseq | markdown | other).
-
----
-
-## STEP 3 — Infer and preview, don't ask more questions
+## STEP 2 — Infer and preview, don't ask more questions
 
 From their free-text answer, infer:
 - Their role (business owner / developer / consultant / creator / student)
@@ -60,188 +40,107 @@ Then show a vault preview. Do NOT ask clarifying questions. Make smart inference
 Here's your vault — ready to build when you are.
 
 📁 [current directory name]
-├── wiki/           Master catalog (index.md) and activity log (log.md)
 ├── inbox/          Drop zone — everything new lands here first
 ├── daily/          Daily brain dumps and quick captures
 ├── [folder]/       [purpose based on their role]
 ├── [folder]/       [purpose based on their role]
-├── research/       Deep dives and synthesized knowledge
+├── [folder]/       [purpose based on their role]
 ├── projects/       Active work with status and next actions
 └── archive/        Completed work — never deleted, just moved
 
-Slash commands (all vaults):
-  /ingest   — add any source to the wiki
-  /query    — ask the wiki anything
-  /lint     — vault health check
+Slash commands:
   /daily    — start your day with vault context
-  /tldr     — save session summary to the right folder
+  /tldr     — save any session to the right folder
+  /[role]   — [role-specific one-liner]
 
 Type "build it" to create this, or tell me what to change.
 ```
 
 Wait for confirmation before building anything.
 
----
-
-## STEP 4 — Build after confirmation
+## STEP 3 — Build after confirmation
 
 Once they say "build it", "yes", "go", "looks good", or similar:
 
 ### Create folders
 ```bash
-mkdir -p wiki inbox daily research projects archive .claude/skills
+mkdir -p inbox daily [role folders] projects archive scripts \
+  .claude/skills/daily .claude/skills/tldr .claude/skills/[role-command]
 ```
 
-Role folder additions:
-- Business Owner → `mkdir -p people operations decisions`
-- Developer → `mkdir -p learning data-engineering`
-- Consultant → `mkdir -p clients`
-- Creator → `mkdir -p content`
-- Student → `mkdir -p learning`
+Role folder sets:
+- Business Owner → `people/ operations/ decisions/`
+- Developer → `research/ clients/`
+- Consultant → `clients/ research/`
+- Creator → `content/ research/ clients/`
+- Student → `notes/ research/`
 
-If personal scope → also `mkdir -p personal`
+If personal scope → also `personal/`
 
-### Create wiki infrastructure
-
-Write `wiki/index.md`:
-```markdown
-# Wiki Index
-
-**Updated:** YYYY-MM-DD
-
-## Research
-<!-- entries added by /ingest -->
-
-## Learning
-<!-- entries added by /ingest -->
+### Open in Obsidian
+```bash
+open -a Obsidian "$(pwd)"
 ```
-
-Write `wiki/log.md`:
-```markdown
-# Wiki Log
-
-Format: `## [YYYY-MM-DD] <operation> | <title>`
-Operations: ingest | query | lint
-Search: grep "^## \[" wiki/log.md | tail -10
-
----
-
-## [YYYY-MM-DD] ingest | Wiki initialized
-- Note: wiki/index.md, wiki/log.md
-- Mode: vault-setup
-```
-(Replace `YYYY-MM-DD` with today's date.)
 
 ### Write CLAUDE.md
-
 Write directly to `CLAUDE.md` in the current directory:
 
 ```markdown
 # CLAUDE.md — [inferred role]'s Second Brain
 
 ## Who I Am
-[2-3 sentences based on what they told you — specific, personal, written in first person]
-
-## Vault Tool
-vault-tool: <obsidian | foam | logseq | markdown | other>
+[2-3 sentences based on what they told you — specific, personal, written in first person as Claude describing its owner]
 
 ## My Vault Structure
 [folder tree with one-line purpose per folder]
 
 ## How I Work
-[3-4 bullet points inferred from their answers]
-
-## Wiki Schema
-- `wiki/index.md` — master catalog; **read this first on any query**
-- `wiki/log.md` — append-only activity log; `grep "^## \[" wiki/log.md | tail -10` for recent entries
-- Every new note → add entry to `wiki/index.md` (newest-first within section)
-- Every operation (ingest / query / lint) → append to `wiki/log.md`
-- Wikilink format: `[[folder/slug]]` (path-qualified to avoid ambiguity)
+[3-4 bullet points inferred from their answers — capture style, main pain point, scope, what they want from AI]
 
 ## Context Rules
-When I mention a topic → look in research/ and learning/ first, then synthesize
-When I mention a project → check projects/ for existing context
+When I mention a decision → check [decisions or relevant folder] first
+When I mention a person/client/project → look in [relevant folder]
 When I ask you to write → read recent daily/ notes to match my voice
 When something lands in inbox/ → ask if I want it sorted now
-
-## Available Slash Commands
-- /ingest     — add any source to the wiki (URL, file, folder, research topic, or study topic)
-- /query      — ask the wiki anything; synthesizes from indexed pages; files answers back
-- /lint       — full vault health-check: file system + wiki quality; reports then executes
-- /daily      — start the day with vault context, recent wiki activity, and priorities
-- /tldr       — save session summary to the right folder; offer to file insights to wiki
-- /braindump  — quick unstructured capture, organized into the right folders
-- /weekly     — review the week, summarize learnings, set next week's goals
 ```
 
----
+### Write skill files
 
-## STEP 5 — Install skills (vault-type conditional)
+**`.claude/skills/daily/SKILL.md`:**
+Read today's daily note or create one. Check inbox/ for unprocessed files. Surface top 3 priorities. Ask: "What are we working on today?"
 
-### All vaults — install core skills
-Copy the entire `skills/core/` directory from this repo into `.claude/skills/`:
+**`.claude/skills/tldr/SKILL.md`:**
+Summarize this conversation: decisions, things to remember, next actions. Save to the most relevant folder. Update memory.md.
 
-```bash
-# Run from inside the vault folder
-cp -r <repo-path>/skills/core/* .claude/skills/
+**Role-specific skill:**
+- Business Owner → `.claude/skills/standup/SKILL.md` — briefing across projects, decisions, people
+- Developer → `.claude/skills/project/SKILL.md` — load a project's full context
+- Consultant → `.claude/skills/client/SKILL.md` — load a client's full context
+- Creator → `.claude/skills/content/SKILL.md` — read content folder, calibrate voice, develop idea
+- Student → `.claude/skills/research/SKILL.md` — pull all notes on a topic, synthesize
+
+### Write memory.md
+```markdown
+# Memory
+
+## Session Log
+[Updated by Claude Code after each session]
+
+## My Preferences
+[Added as Claude learns them]
 ```
 
-Or instruct the user manually:
-```
-Copy everything from skills/core/ in the repo into .claude/skills/ in your vault.
-```
+## STEP 4 — Context injection question
 
-### Obsidian only — install extras + show manual step
-```bash
-cp -r <repo-path>/skills/extras/obsidian/* .claude/skills/
-```
+After building, ask:
 
-Then display:
 ```
-One required step:
-  Obsidian → Settings → General → Enable Command Line Interface
-```
+One last thing — how do you want your vault context loaded into Claude Code?
 
-Then open the vault in Obsidian (OS-appropriate):
-- **macOS:** `open -a Obsidian "$(pwd)"`
-- **Windows:** `start "" "obsidian://open?vault=$(basename $(pwd))"`
-- **Linux:** `xdg-open "obsidian://open?vault=$(basename $(pwd))"` or instruct user to open the folder as a new vault manually
-
-Add to CLAUDE.md under "Vault Tool":
-```
-Using Obsidian — wikilinks use [[folder/slug]] format. Graph view, backlinks, and canvas output available.
-obsidian-cli and obsidian-markdown skills are installed.
-```
-
-### VS Code + Foam only
-Add to CLAUDE.md under "Vault Tool":
-```
-Using Foam — wikilinks resolve via Foam extension. Cmd/Ctrl+Click to navigate links.
-Graph view available via Foam sidebar. Canvas output not available; use Mermaid diagrams instead.
-```
-
-### Logseq only
-Add to CLAUDE.md under "Vault Tool":
-```
-Using Logseq — wikilinks work but avoid ((block-refs)) in Claude-written notes.
-Stick to [[page links]]. Canvas output not available; use Mermaid diagrams instead.
-```
-
-### Plain markdown / other
-No additional setup needed. All skills work with file-system operations only.
-
----
-
-## STEP 6 — Wire globally (optional but recommended)
-
-Ask:
-```
-How do you want your vault context loaded into Claude Code?
-
-1. Global (recommended) — adds one line to ~/.claude/CLAUDE.md so your vault
-   context loads in every Claude Code session on this machine
-2. Vault only — works automatically when you run claude from inside this folder
-3. Skip
+1. Global (recommended) — adds one line to ~/.claude/CLAUDE.md so your vault 
+   context loads automatically in every Claude Code session on this machine
+2. Manual — I'll give you the line to paste into specific projects when you need it
+3. Vault only — works automatically when you run claude from inside this folder
 ```
 
 **If global:** Append to `~/.claude/CLAUDE.md` (create if needed):
@@ -250,23 +149,20 @@ How do you want your vault context loaded into Claude Code?
 At the start of every session, read [absolute vault path]/CLAUDE.md for context about who I am, my work, and my conventions.
 ```
 
----
-
-## STEP 7 — Final output
+## STEP 5 — Final output
 
 ```
-Done. Your vault is ready.
+Done. Your vault is live in Obsidian.
 
-[If Obsidian] One manual step:
+One manual step left:
   Obsidian → Settings → General → Enable Command Line Interface
 
 Your slash commands:
-  /ingest   — add any source to the wiki (URL, file, research topic)
-  /query    — ask the wiki anything
-  /lint     — vault health-check
-  /daily    — run this every morning
+  /daily    — run this tomorrow morning
   /tldr     — run this at the end of any session
+  /[role]   — [one liner]
 
 Have files to import?
-  Drop them in inbox/ then run: /ingest inbox/
+  python scripts/process_docs_to_obsidian.py ~/your-files inbox/
+  Then: "Sort everything in inbox/ into the right folders"
 ```
