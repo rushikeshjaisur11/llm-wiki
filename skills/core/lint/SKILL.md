@@ -5,7 +5,7 @@ description: Full vault health-check — scans for file system issues (misplaced
 
 # Lint — Full Vault Health Check
 
-Vault root: `C:/Users/rushi/llm-wiki/`
+Vault root: `{{VAULT}}/`
 
 ## Phase 1: Scan (read-only)
 

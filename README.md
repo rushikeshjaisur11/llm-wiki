@@ -151,10 +151,37 @@ Search: grep "^## \[" wiki/log.md | tail -10
 
 ---
 
+## Search architecture
+
+Query routing is handled by Python scripts in `skills/_wiki/` — Claude reads zero routing files. The 3-stage pipeline:
+
+1. **Stage 0 — Community match** (`routing.md`, O(1), ~500 bytes): tokenise query, match against community keywords
+2. **Stage 1 — FTS5 BM25** (`search.db`, Porter stemming): full-text search with community pre-filter, PMI synonym expansion, fuzzy correction
+3. **Stage 2 — sqlite-vec re-rank** (optional): semantic re-ranking if `sqlite-vec` + `sentence-transformers` are installed
+
+**Scaling:** 1k notes ~5ms | 10k notes ~10ms | 100k notes ~30ms
+
+**Token cost per query:** ~100 bytes (just returned paths) vs 4-8 KB with direct file reads.
+
+Scripts:
+- `search.py` — main search entry point (used by `/query`, `/ingest`)
+- `build_graph.py` — knowledge graph builder (community detection, edges)
+- `build_routing.py` — 2-tier compact Markdown routing index
+- `build_index.py` — SQLite FTS5 index + PMI synonym builder
+
+All scripts support `--update <path>` for O(1) incremental updates and full rebuild mode.
+
+---
+
 ## Repo structure
 
 ```
 skills/
+├── _wiki/              Python search tools (copied during setup)
+│   ├── build_graph.py
+│   ├── build_routing.py
+│   ├── build_index.py
+│   └── search.py
 ├── core/               Installed for ALL vault types
 │   ├── ingest/
 │   ├── query/
@@ -196,14 +223,23 @@ Then type `/vault-setup`. It will ask who you are and which tool you use, then b
 ### 3. Manual setup (alternative)
 
 ```bash
-# From inside your vault root
-mkdir -p wiki .claude/skills
+VAULT="$(pwd)"
+DEST="$HOME/.claude/skills"    # or "$VAULT/.claude/skills" for local
 
-# Install core skills (all vault types)
-cp -r path/to/llm-wiki/skills/core/* .claude/skills/
+# Install core skills
+cp -r path/to/llm-wiki/skills/core/* "$DEST/"
 
 # Obsidian only — also install extras
-cp -r path/to/llm-wiki/skills/extras/obsidian/* .claude/skills/
+cp -r path/to/llm-wiki/skills/extras/obsidian/* "$DEST/"
+
+# Install Python search tools
+mkdir -p "$DEST/_wiki"
+cp path/to/llm-wiki/skills/_wiki/*.py "$DEST/_wiki/"
+echo "$VAULT" > "$DEST/_wiki/.vault_path"
+
+# Patch placeholders in all SKILL.md files
+find "$DEST" -name "*.md" -exec sed -i "s|{{VAULT}}|$VAULT|g" {} +
+find "$DEST" -name "*.md" -exec sed -i "s|{{SCRIPTS}}|$DEST/_wiki|g" {} +
 ```
 
 Create `wiki/index.md` and `wiki/log.md` with the templates above.
@@ -229,7 +265,14 @@ vault-tool: obsidian   <!-- obsidian | foam | logseq | markdown | other -->
 - /lint        — full vault health-check + cleanup
 - /daily       — start the day
 - /tldr        — end-of-session summary
-- /graphbuild  — rebuild wiki knowledge graph
+- /graphbuild  — rebuild wiki knowledge graph + search indexes
+```
+
+Build search indexes (after vault has content):
+```bash
+python "$DEST/_wiki/build_graph.py"
+python "$DEST/_wiki/build_routing.py"
+python "$DEST/_wiki/build_index.py"
 ```
 
 ### 4. Wire globally (optional but recommended)
@@ -256,10 +299,14 @@ npm install -g defuddle
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI
+- Python 3.10+ (for search scripts)
+- PyYAML (`pip install pyyaml`)
 - Any markdown vault (Obsidian, VS Code + Foam, Logseq, or plain files)
 - For `/ingest` URL mode: `npm install -g defuddle`
 - For `/ingest research:` mode: Claude Code with web search enabled
 - For Obsidian `/lint` native accuracy: Obsidian CLI enabled (Settings → General → Command Line Interface)
+- Optional: `networkx` for structural community refinement in graph builder
+- Optional: `sqlite-vec` + `sentence-transformers` for Stage 2 semantic re-ranking
 
 ## License
 

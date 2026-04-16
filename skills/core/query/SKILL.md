@@ -1,11 +1,11 @@
 ---
 name: query
-description: Answer a question using the wiki. Reads wiki/index.md first to find relevant pages, synthesizes an answer with wikilink citations, flags contradictions and gaps, and offers to file the answer back as a new wiki page. Use when asking anything that should be answered from accumulated knowledge. Supports multiple output formats.
+description: Answer a question using the wiki. Runs search.py to find relevant pages (zero token cost), synthesizes an answer with wikilink citations, flags contradictions and gaps, and offers to file the answer back as a new wiki page. Use when asking anything that should be answered from accumulated knowledge. Supports multiple output formats.
 ---
 
 # Query — Ask the Wiki
 
-Vault root: `C:/Users/rushi/llm-wiki/`
+Vault root: `{{VAULT}}/`
 
 ## Step 1: Detect output format
 
@@ -21,43 +21,16 @@ Infer from the question or ask if ambiguous:
 
 ---
 
-## Step 2: Graph routing (2-stage)
+## Step 2: Find relevant pages (Python search — zero token cost)
 
-**Check for graph first.** If `wiki/graph.json` does not exist → fall back to reading `wiki/index.md` in full and picking 3–8 pages by keyword match (old behaviour).
+```
+python {{SCRIPTS}}/search.py "<question keywords>" --top 5
+```
 
-If `wiki/graph.json` exists:
-
-### Stage 1 — Community match (reads `wiki/graph.json` only)
-
-Read `wiki/graph.json`. Tokenise the question (lowercase, split on spaces/punctuation, strip stopwords).
-For each community in `communities`:
-- `keyword_score` = # question tokens matching `community.keywords`
-- `label_score`   = # question tokens matching words in `community.label` (lowercase)
-- `total = keyword_score + label_score`
-
-Take the **top 1–2 communities** (total > 0). If tied, take both. If no community scores > 0 → fall back to `wiki/index.md`.
-
-### Stage 2 — Node scoring within community (reads `wiki/graph/nodes/<c>.json`)
-
-For each matched community, read `wiki/graph/nodes/<community>.json`.
-Score each node:
-- `tag_score`     = # question tokens matching `node.tags`   (weight ×3)
-- `title_score`   = # question tokens appearing in `node.title` or the path segments of `node.id`  (weight ×2)
-- `summary_score` = # question tokens appearing in `node.summary` (weight ×1)
-- `total = tag_score * 3 + title_score * 2 + summary_score`
-
-Sort descending. Take **top 5 candidates** across all matched communities.
-
-> Note: many notes lack explicit summary sections — `title_score` and `tag_score` are the primary signals.
-
-### Stage 2b — BFS neighbour expansion (reads `wiki/graph/edges.json`, optional)
-
-If top candidates < 3 OR top score == 0:
-- Read `wiki/graph/edges.json`
-- For each top candidate, add its 1-hop neighbours that share ≥1 question token in their tags
-- Cap the final set at 8 nodes
-
-→ The resulting node IDs are the pages to read in Step 3.
+- Output: vault-relative `.md` paths, one per line. Read only those files.
+- If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
+- Use `--debug` flag to see community scores and BM25 ranking on stderr.
+- The script handles community routing, FTS5 BM25 search, PMI synonym expansion, and fuzzy correction internally — Claude reads zero routing files.
 
 ---
 
