@@ -30,3 +30,5 @@ skills/_wiki/.vault_path
 .DS_Store
 desktop.ini
 Thumbs.db
+
+dist/
