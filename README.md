@@ -175,116 +175,55 @@ All scripts support `--update <path>` for O(1) incremental updates and full rebu
 
 ## Repo structure
 
-```
-skills/
-├── _wiki/              Python search tools (copied during setup)
-│   ├── build_graph.py
-│   ├── build_routing.py
-│   ├── build_index.py
-│   └── search.py
-├── core/               Installed for ALL vault types
-│   ├── ingest/
-│   ├── query/
-│   ├── lint/
-│   ├── daily/
-│   ├── tldr/
-│   ├── defuddle/
-│   ├── graphbuild/
-│   └── vault-setup/
-└── extras/
-    └── obsidian/       Installed ONLY for Obsidian users
-        ├── obsidian-cli/
-        ├── obsidian-markdown/
-        ├── obsidian-bases/
-        └── json-canvas/
+```text
+llm-wiki/
+├── pyproject.toml         (Package metadata and dependencies)
+└── src/
+    └── llm_wiki/
+        ├── cli.py         (Command-line wizard based on Typer+Rich)
+        ├── skills/        (Skills bundled into the package)
+        │   ├── _wiki/     Python search tools
+        │   ├── core/      Installed for ALL vault types
+        │   └── extras/    Installed for specific editors
 ```
 
 ---
 
 ## Setup
 
-### 1. Install Claude Code
+### 1. Install the LLM-Wiki package
 
+To install the configuration wizard and search dependencies globally on your machine:
+
+```bash
+pip install llm-wiki
+```
+*(Or if running from source: `pip install -e .`)*
+
+### 2. Run the Install Wizard
+
+Run the interactive wizard from your terminal to configure your new vault and wire up the skills:
+
+```bash
+llm-wiki --install
+```
+
+This will automatically prompt you for your absolute vault path, configure your Claude context globally, and copy the required skills into your `~/.claude/` directory correctly patched.
+
+### 3. Start Claude Code and Build
+
+Install Claude Code globally if you haven't already:
 ```bash
 npm install -g @anthropic-ai/claude-code
 ```
 
-### 2. Run `/vault-setup` (recommended)
-
-From inside your vault folder:
-
+Navigate to your vault folder and start Claude:
 ```bash
 cd your-vault
 claude
 ```
 
-Then type `/vault-setup`. It will ask who you are and which tool you use, then build everything.
-
-### 3. Manual setup (alternative)
-
-```bash
-VAULT="$(pwd)"
-DEST="$HOME/.claude/skills"    # or "$VAULT/.claude/skills" for local
-
-# Install core skills
-cp -r path/to/llm-wiki/skills/core/* "$DEST/"
-
-# Obsidian only — also install extras
-cp -r path/to/llm-wiki/skills/extras/obsidian/* "$DEST/"
-
-# Install Python search tools
-mkdir -p "$DEST/_wiki"
-cp path/to/llm-wiki/skills/_wiki/*.py "$DEST/_wiki/"
-echo "$VAULT" > "$DEST/_wiki/.vault_path"
-
-# Patch placeholders in all SKILL.md files
-find "$DEST" -name "*.md" -exec sed -i "s|{{VAULT}}|$VAULT|g" {} +
-find "$DEST" -name "*.md" -exec sed -i "s|{{SCRIPTS}}|$DEST/_wiki|g" {} +
-```
-
-Create `wiki/index.md` and `wiki/log.md` with the templates above.
-
-Create `CLAUDE.md` with at minimum:
-```markdown
-# CLAUDE.md
-
-## Who I Am
-[2-3 sentences about your role and what this vault tracks]
-
-## Vault Tool
-vault-tool: obsidian   <!-- obsidian | foam | logseq | markdown | other -->
-
-## Wiki Schema
-- `wiki/index.md` — master catalog; read this first on any query
-- `wiki/log.md` — append-only activity log
-- Wikilink format: [[folder/slug]] (path-qualified)
-
-## Available Commands
-- /ingest      — add any source to the wiki
-- /query       — ask the wiki; file answers back
-- /lint        — full vault health-check + cleanup
-- /daily       — start the day
-- /tldr        — end-of-session summary
-- /graphbuild  — rebuild wiki knowledge graph + search indexes
-```
-
-Build search indexes (after vault has content):
-```bash
-python "$DEST/_wiki/build_graph.py"
-python "$DEST/_wiki/build_routing.py"
-python "$DEST/_wiki/build_index.py"
-```
-
-### 4. Wire globally (optional but recommended)
-
-Append to `~/.claude/CLAUDE.md`:
-
-```
-## My Personal Context
-At the start of every session, read /absolute/path/to/your-vault/CLAUDE.md for context about who I am, my work, and my conventions.
-```
-
-Now every Claude Code session on your machine has your vault context.
+Type `/vault-setup` into Claude. It will ask about your occupation and automatically scaffold your data tracking systems (`inbox/`, `projects/`, `wiki/index.md`, `CLAUDE.md`, etc.).
 
 ### 5. Enable defuddle (optional)
 

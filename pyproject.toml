@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llm-wiki"
+version = "0.1.0"
+description = "A context engine and wiki skill runner"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+llm-wiki = "llm_wiki.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm_wiki"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/llm_wiki/skills" = "llm_wiki/skills"
+"src/llm_wiki/rules" = "llm_wiki/rules"
