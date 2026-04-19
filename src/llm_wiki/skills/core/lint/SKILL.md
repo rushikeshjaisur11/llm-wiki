@@ -12,7 +12,7 @@ Vault root: `{{VAULT}}/`
 ### File System Health
 
 **1a. Loose root files**
-List all files at vault root other than: `CLAUDE.md`, `memory.md`, `wiki/`
+List all files at vault root other than: `CLAUDE.md`, `wiki/`
 Flag: should only contain those plus folder structure and `.obsidian/`
 
 **1b. Unprocessed inbox/**
@@ -75,6 +75,27 @@ For each community in `wiki/graph/nodes/`:
 - Only read the actual note files for flagged pairs (not all members)
 Flag cases where two pages make opposing claims about the same concept (e.g. one recommends X, another recommends against X for the same use case).
 
+**2e-ext. Orphan pages**
+For each page in `research/`, `learning/`, `data-engineering/`, `projects/`:
+- Grep the entire vault (excluding `wiki/index.md`, `wiki/routing/`, `wiki/log.md`) for `[[page-stem]]` or `[[folder/page-stem]]`
+- Flag pages with zero inbound content wikilinks as orphans
+- List up to 15 orphans with suggested cross-link targets (pages with similar tags)
+
+**2e-ext2. Stale content detector**
+For each page whose frontmatter `tags` contains any of: `llm`, `rag`, `framework`, `tooling`, `model-serving`, `claude-code`:
+- Check `updated` field (or `created` if `updated` absent)
+- Flag pages where that date is > 60 days before today as potentially stale
+- List them with their date and a suggested web search query to verify currency
+
+**2e-ext3. Frontmatter schema validator**
+Canonical fields: `title`, `created`, `updated`, `tags`, `type`, `source`, `related`
+For each page, flag:
+- Missing `title` (note: `title` may be set or derived from first `# Heading`)
+- `date` field present instead of `created` (needs migration — run `migrate_frontmatter.py`)
+- Missing `type` field
+- `related` field completely absent (vs `related: []` which is fine)
+Summarise as: "N pages need frontmatter migration" with a suggestion to run `python {{SCRIPTS}}/migrate_frontmatter.py --write`
+
 **2f. Actionable next research**
 From `## Open Questions` sections across all pages + concept stubs + gaps, produce 3–5 specific research topics with actionable web search queries:
 - Topic: "X"
@@ -101,7 +122,9 @@ Show the consolidated report before touching anything:
 ### Wiki Health
 **Not in index (N pages):** [list]
 **Broken wikilinks (N):** [[link]] in file.md
-**Orphan pages (N):** [list]
+**Orphan pages (N):** [list with suggested cross-link targets]
+**Stale content (N pages > 60 days old on fast-moving tags):** [list with dates]
+**Frontmatter issues (N pages):** [summary + migration command if applicable]
 **Concept stubs to create (N):** [list]
 **Contradictions (N):** [description]
 

@@ -196,7 +196,7 @@ llm-wiki/
 To install the configuration wizard and search dependencies globally on your machine:
 
 ```bash
-pip install llm-wiki
+pip install llm-wiki-claude
 ```
 *(Or if running from source: `pip install -e .`)*
 

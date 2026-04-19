@@ -333,16 +333,33 @@ This step is mandatory after all modes.
    - Mode: <url | file | batch | research | study>
    ```
 
-5. Update search indexes (all three, in order):
+5. Update search indexes (all four, in order):
    ```
    python {{SCRIPTS}}/build_graph.py --update <folder/slug.md>
    python {{SCRIPTS}}/build_routing.py --update <folder/slug.md>
    python {{SCRIPTS}}/build_index.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_embeddings.py --update <folder/slug.md>
    ```
    If scripts are not found or `wiki/graph.json` does not exist, run full builds instead:
    ```
    python {{SCRIPTS}}/build_graph.py
    python {{SCRIPTS}}/build_routing.py
    python {{SCRIPTS}}/build_index.py
+   python {{SCRIPTS}}/build_embeddings.py
    ```
    For batch mode, always run full builds (not `--update`) after all notes are written.
+
+6. **Suggest related pages** (only if `wiki/embeddings.db` exists):
+   ```
+   python {{SCRIPTS}}/search.py "<new note title and top 3 tags>" --top 8
+   ```
+   From the results, exclude the newly written note itself. Compute tag Jaccard overlap between the
+   new note's tags and each candidate's tags. Rank by combined score (search rank + tag overlap).
+   Take top 5 and populate the `related:` field in the new note's frontmatter:
+   ```yaml
+   related:
+     - "[[candidate1]]"
+     - "[[candidate2]]"
+     ...
+   ```
+   Skip this step if the search returns NO_RESULTS or `wiki/embeddings.db` does not exist.

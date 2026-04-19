@@ -10,9 +10,6 @@ FTS5 table schema:
   path (UNINDEXED), community (UNINDEXED), title [w:5], tags [w:8],
   section_headers [w:3], summary [w:2]
 
-Query time (FTS5 + community pre-filter):
-  1k notes  -> ~5ms  |  10k notes -> ~10ms  |  100k notes -> ~30ms
-
 Usage:
   python build_index.py              # full rebuild
   python build_index.py --summary    # preview stats, no write
@@ -29,16 +26,15 @@ from pathlib import Path
 from datetime import datetime, timezone
 from collections import defaultdict, Counter
 
-# ── Import shared logic from build_graph.py (same directory) ─────────────────
-
 sys.path.insert(0, str(Path(__file__).parent))
-from build_graph import (
+from common import (
     VAULT,
     parse_note,
     collect_notes,
     assign_community_tag,
     _should_include,
     _node_id,
+    load_vault_notes,
 )
 
 DB_PATH  = VAULT / "wiki" / "search.db"
@@ -55,12 +51,6 @@ STOPWORDS = {
 # ── Section header extraction ─────────────────────────────────────────────────
 
 def extract_section_headers(content: str) -> str:
-    """
-    Extract ## and ### heading text from note content.
-    Returns a space-joined string for FTS5 indexing.
-    Large notes (DDIA 46KB, handson-llm 36KB) get full coverage
-    via their headings without indexing all content.
-    """
     headers = []
     in_frontmatter = False
     fm_count = 0
@@ -80,7 +70,7 @@ def extract_section_headers(content: str) -> str:
     return " ".join(headers)
 
 
-# ── Note enrichment ─────────────────���─────────────────────────────────────────
+# ── Note enrichment ───────────────────────────────────────────────────────────
 
 def enrich_note(path: Path) -> dict | None:
     """Parse note and add community + section_headers for indexing."""
@@ -90,23 +80,33 @@ def enrich_note(path: Path) -> dict | None:
         return None
 
     node = parse_note(path)
-    node["community"] = assign_community_tag(node) or "uncategorized"
+    node["community"]       = assign_community_tag(node) or "uncategorized"
     node["section_headers"] = extract_section_headers(content)
     return node
 
 
 def collect_enriched() -> list[dict]:
-    notes = []
-    for path in sorted(VAULT.rglob("*.md")):
-        rel = str(path.relative_to(VAULT)).replace("\\", "/")
-        if _should_include(rel):
-            n = enrich_note(path)
-            if n:
-                notes.append(n)
-    return notes
+    """Load base notes from cache, then enrich with community + section headers."""
+    notes_map = load_vault_notes()  # A1: disk-cached
+    enriched  = []
+    for nid, node in notes_map.items():
+        n = dict(node)
+        n["community"] = assign_community_tag(n) or "uncategorized"
+        # section_headers requires re-reading the file — not stored in cache
+        path = VAULT / (nid + ".md")
+        if path.exists():
+            try:
+                content = path.read_text(encoding="utf-8", errors="replace")
+                n["section_headers"] = extract_section_headers(content)
+            except OSError:
+                n["section_headers"] = ""
+        else:
+            n["section_headers"] = ""
+        enriched.append(n)
+    return enriched
 
 
-# ── FTS5 index ──────────────────────────────────────────────��─────────────────
+# ── FTS5 index ────────────────────────────────────────────────────────────────
 
 CREATE_SQL = """
 CREATE VIRTUAL TABLE notes USING fts5(
@@ -121,7 +121,6 @@ CREATE VIRTUAL TABLE notes USING fts5(
 """
 
 def build_fts(notes: list[dict]) -> None:
-    """Create (or replace) wiki/search.db with all notes."""
     conn = sqlite3.connect(DB_PATH)
     conn.execute("DROP TABLE IF EXISTS notes")
     conn.execute(CREATE_SQL)
@@ -142,10 +141,7 @@ def build_fts(notes: list[dict]) -> None:
 
 
 def upsert_fts(path_str: str) -> None:
-    """
-    Incremental update: remove old row for this note, insert new one.
-    O(1) — touches only one row in the FTS5 index.
-    """
+    """Incremental update: remove old row, insert new one. O(1)."""
     abs_path = VAULT / path_str
     if not abs_path.exists():
         print(f"ERROR: {path_str} not found", file=sys.stderr)
@@ -156,8 +152,7 @@ def upsert_fts(path_str: str) -> None:
         print(f"ERROR: could not parse {path_str}", file=sys.stderr)
         sys.exit(1)
 
-    conn = sqlite3.connect(DB_PATH)
-    # Ensure table exists
+    conn   = sqlite3.connect(DB_PATH)
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     if "notes" not in tables:
         conn.execute(CREATE_SQL)
@@ -173,11 +168,10 @@ def upsert_fts(path_str: str) -> None:
     print(f"  upserted {n['id']} -> {n['community']}")
 
 
-# ── PMI co-occurrence synonyms ─────────────────��──────────────────────────────
+# ── PMI co-occurrence synonyms (A4) ──────────────────────────────────────────
 
 def _tokenise(text: str) -> list[str]:
-    # Strip markdown characters before splitting
-    text = re.sub(r"[`*_\[\](){}]", " ", text)
+    text   = re.sub(r"[`*_\[\](){}]", " ", text)
     tokens = re.split(r"[\s,/|.\-_]+", text.lower())
     return [
         t for t in tokens
@@ -185,53 +179,61 @@ def _tokenise(text: str) -> list[str]:
         and t not in STOPWORDS
         and len(t) > 2
         and not t.isdigit()
-        and not re.match(r"^\d+[a-z]?$", t)   # skip "2025", "3b", "46kb"
+        and not re.match(r"^\d+[a-z]?$", t)
     ]
 
 
 def build_pmi_synonyms(
     notes: list[dict],
     min_pmi: float = 2.0,
-    min_cooc: int = None,   # auto: max(3, N//15)
+    min_cooc: int = None,
     max_synonyms: int = 4,
 ) -> dict[str, list[str]]:
     """
     Compute PMI-based synonym map from corpus tags + summary tokens.
 
-    PMI(A, B) = log( P(A,B) / (P(A) * P(B)) )
-
-    High PMI + min co-occurrence threshold -> A and B are meaningfully related
-    in this specific corpus (not just generic English).
+    A4 optimizations:
+    - Two-pass: collect term_freq first, then filter singleton tokens before
+      building the co-occurrence matrix — reduces O(V²) to O(V_valid²).
+    - Counter.most_common() early-break in PMI scoring phase.
     """
     N = len(notes)
     if N < 10:
         return {}
 
-    # Auto-scale min_cooc to corpus size: need at least N//15 co-occurrences
     if min_cooc is None:
         min_cooc = max(4, N // 15)
 
-    # Term frequency and co-occurrence
-    term_freq: Counter = Counter()
-    cooc: dict[str, Counter] = defaultdict(Counter)
-
+    # Pass 1: term frequencies + tokenised doc sets
+    term_freq: Counter  = Counter()
+    doc_token_sets: list[frozenset] = []
     for note in notes:
-        doc_tokens = set(_tokenise(" ".join(note["tags"]) + " " + note["summary"]))
+        doc_tokens = frozenset(_tokenise(" ".join(note["tags"]) + " " + note["summary"]))
+        doc_token_sets.append(doc_tokens)
         for t in doc_tokens:
             term_freq[t] += 1
-        for t1 in doc_tokens:
-            for t2 in doc_tokens:
-                if t1 < t2:  # canonical ordering avoids double-counting
-                    cooc[t1][t2] += 1
 
-    # Compute PMI for all pairs that meet min_cooc threshold
+    # A4: drop tokens appearing in only one document (guaranteed below min_cooc)
+    valid_tokens = {t for t, c in term_freq.items() if c >= 2}
+
+    # Pass 2: co-occurrence on filtered token sets
+    cooc: dict[str, Counter] = defaultdict(Counter)
+    for doc_tokens in doc_token_sets:
+        filtered     = sorted(doc_tokens & valid_tokens)
+        n_tok        = len(filtered)
+        for i in range(n_tok):
+            t1 = filtered[i]
+            for j in range(i + 1, n_tok):
+                cooc[t1][filtered[j]] += 1
+
+    # Compute PMI; A4: use most_common() to break early once count < min_cooc
     synonyms: dict[str, list[tuple[str, float]]] = defaultdict(list)
     for t1, counts in cooc.items():
-        for t2, c in counts.items():
+        p_t1 = term_freq[t1] / N
+        for t2, c in counts.most_common():
             if c < min_cooc:
-                continue
-            p_t1 = term_freq[t1] / N
-            p_t2 = term_freq[t2] / N
+                break  # sorted descending — safe to stop
+            p_t2   = term_freq[t2] / N
             p_both = c / N
             if p_t1 == 0 or p_t2 == 0:
                 continue
@@ -240,7 +242,6 @@ def build_pmi_synonyms(
                 synonyms[t1].append((t2, pmi))
                 synonyms[t2].append((t1, pmi))
 
-    # Keep top-N synonyms per term, sorted by PMI descending
     result: dict[str, list[str]] = {}
     for term, pairs in synonyms.items():
         pairs.sort(key=lambda x: -x[1])
@@ -249,7 +250,7 @@ def build_pmi_synonyms(
     return result
 
 
-# ── Summary & reporting ───────────────���─────────────────────────────────��─────
+# ── Summary & reporting ───────────────────────────────────────────────────────
 
 def print_summary(notes: list[dict], synonyms: dict) -> None:
     from collections import Counter as C
@@ -279,13 +280,13 @@ def print_summary(notes: list[dict], synonyms: dict) -> None:
     print()
 
 
-# ── Main ───────────���──────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build SQLite FTS5 search index")
     parser.add_argument("--summary", action="store_true", help="Preview only, no write")
     parser.add_argument("--update", metavar="PATH",
-                        help="Upsert one note (vault-relative, e.g. learning/foo.md)")
+                        help="Upsert one note (vault-relative)")
     args = parser.parse_args()
 
     if args.update:
@@ -293,7 +294,7 @@ def main() -> None:
         upsert_fts(args.update)
         return
 
-    print("Scanning vault notes...")
+    print("Loading vault notes (cached)...")
     notes = collect_enriched()
 
     print("Computing PMI synonyms...")

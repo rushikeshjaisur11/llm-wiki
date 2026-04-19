@@ -17,7 +17,7 @@ Infer from the question or ask if ambiguous:
 | "as a note" / deep synthesis | File as `research/<slug>.md` |
 | "compare" / "vs" / "difference between" | Markdown comparison table |
 | "slides" / "presentation" / "deck" | Marp slide deck in `research/<slug>.md` |
-| "map" / "canvas" / "visual" | JSON canvas via `/json-canvas` skill |
+| "map" / "canvas" / "visual" | Graph canvas via `export_canvas.py` |
 
 ---
 
@@ -73,7 +73,12 @@ theme: default
 ...
 ```
 
-**Canvas:** Invoke `/json-canvas` with the synthesis as context to build a visual map.
+**Canvas:** Run the graph canvas exporter and open the result in Obsidian:
+```
+python {{SCRIPTS}}/export_canvas.py
+```
+This writes `wiki/graph.canvas` showing all vault notes grouped by community, colored by topic, with hub notes highlighted. Open in Obsidian to explore the knowledge graph visually.
+If the user wants a focused canvas (only notes relevant to their query), filter by reading the community from `wiki/routing.md` and passing `--summary` first to identify the right community, then note which community files are most relevant.
 
 ---
 

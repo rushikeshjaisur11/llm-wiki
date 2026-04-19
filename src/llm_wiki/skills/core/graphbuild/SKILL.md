@@ -1,23 +1,25 @@
 ---
 name: graphbuild
-description: Rebuild the wiki knowledge graph and search indexes from scratch. Runs build_graph.py, build_routing.py, and build_index.py in sequence, prints a community breakdown table with node counts and hub notes, and reports dangling links. Use after bulk ingests or when community assignments need refreshing.
+description: Rebuild the wiki knowledge graph and search indexes from scratch. Runs build_graph.py, build_routing.py, build_index.py, and build_embeddings.py in sequence, prints a community breakdown table with node counts and hub notes, and reports dangling links. Use after bulk ingests or when community assignments need refreshing.
 ---
 
 # Graphbuild — Rebuild the Wiki Knowledge Graph + Search Indexes
 
 Vault root: `{{VAULT}}/`
 
-## Step 1: Run all three builders in sequence
+## Step 1: Run all four builders in sequence
 
 ```
 python {{SCRIPTS}}/build_graph.py
 python {{SCRIPTS}}/build_routing.py
 python {{SCRIPTS}}/build_index.py
+python {{SCRIPTS}}/build_embeddings.py
 ```
 
 - `build_graph.py` — builds `wiki/graph.json` (community assignments, edges, hub detection)
 - `build_routing.py` — builds `wiki/routing.md` + `wiki/routing/<community>.md` (Stage 0 of search pipeline)
 - `build_index.py` — builds `wiki/search.db` + `wiki/synonyms.json` (FTS5 BM25 search index + PMI synonyms)
+- `build_embeddings.py` — builds `wiki/embeddings.db` (all-MiniLM-L6-v2 384-d embeddings for Stage 2 vec re-rank; requires `pip install sentence-transformers sqlite-vec`)
 
 ## Step 2: Read the output and print a community breakdown table
 
