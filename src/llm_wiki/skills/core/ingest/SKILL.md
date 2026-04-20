@@ -5,7 +5,7 @@ description: Add any source to the wiki — URL, file, batch folder, research to
 
 # Ingest — Add to Wiki
 
-Vault root: `C:/Users/rushi/llm-wiki/`
+Vault root: `{{VAULT}}/`
 
 ## Mode detection
 
@@ -164,7 +164,7 @@ Detect from the argument passed:
    Subagent prompt template (fill in placeholders):
    ```
    Process a single file for an Obsidian vault.
-   File: <ABSOLUTE_PATH> | Date: <TODAY> | Vault root: C:/Users/rushi/llm-wiki/
+   File: <ABSOLUTE_PATH> | Date: <TODAY> | Vault root: {{VAULT}}/
 
    Step 1: Read the COMPLETE file.
    - PDFs: check total page count, read in 10-page chunks until all pages done.
@@ -178,12 +178,12 @@ Detect from the argument passed:
    - personal/     — goals, health, reflections, admin
    - archive/      — completed or doesn't fit elsewhere
 
-   Step 3: Write full markdown source to: C:/Users/rushi/llm-wiki/<folder>/sources/<stem>.md
+   Step 3: Write full markdown source to: {{VAULT}}/<folder>/sources/<stem>.md
    The <stem> is filename without extension, spaces → underscores.
    Content must be COMPLETE — every word from original, verbatim. Not a summary.
    Use frontmatter: title, date, tags, source (original filename), type.
 
-   Step 4: Write summary note to: C:/Users/rushi/llm-wiki/<folder>/<stem>.md
+   Step 4: Write summary note to: {{VAULT}}/<folder>/<stem>.md
    Format: frontmatter + ## TL;DR (1 punchy sentence) + ## Key Points (3–5 bullets) + ## Related (leave placeholder comment)
 
    Step 5: Return exactly:
@@ -202,12 +202,12 @@ Detect from the argument passed:
 
 ## Research mode
 
-1. **Graph-route to existing notes** (do not glob folders):
-   Use the Wiki Graph Routing procedure from `CLAUDE.md`:
-   - Stage 1: read `wiki/graph.json`, match topic tokens against community keywords/labels → top 1–2 communities
-   - Stage 2: read matched `wiki/graph/nodes/<c>.json`, score nodes by tag + title + summary → top 3–5 candidates
-   - Read those note files. Note what's already known (definitions, gaps, existing coverage).
-   - Fall back to `wiki/index.md` only if graph routing yields 0 candidates.
+1. **Search existing notes** (zero token cost):
+   ```
+   python {{SCRIPTS}}/search.py "<topic>" --top 5
+   ```
+   Read the returned note files. Note what's already known (definitions, gaps, existing coverage).
+   If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
 2. `WebSearch` — at least 3 sources, prefer 2024–2026
 3. Show 2–3 sentence synthesis → ask: "Anything to emphasize or cut?"
 4. Write `research/<slug>.md`:
@@ -258,9 +258,12 @@ Detect from the argument passed:
 
 ## Study mode
 
-1. **Graph-route to existing notes** (use Wiki Graph Routing from `CLAUDE.md`):
-   Stage 1 → top 1–2 communities; Stage 2 → top 3–5 nodes; read those files → extract relevant content into "What I Already Know".
-   Fall back to `wiki/index.md` only if graph yields 0 candidates.
+1. **Search existing notes** (zero token cost):
+   ```
+   python {{SCRIPTS}}/search.py "<topic>" --top 5
+   ```
+   Read returned files → extract relevant content into "What I Already Know".
+   If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
 2. Write `learning/<slug>.md`:
 
    ```markdown
@@ -309,13 +312,12 @@ Detect from the argument passed:
 
 This step is mandatory after all modes.
 
-1. **Graph-route to related pages** (do not read full `wiki/index.md` for this step):
-   - Use the new note's tags + title tokens as the query
-   - Stage 1: read `wiki/graph.json`, match tokens → top 1–2 communities
-   - Stage 2: read matched `wiki/graph/nodes/<c>.json`, score nodes → top 3–5 candidates
-   - Stage 2b: read `wiki/graph/edges.json`, add 1-hop neighbours that share ≥1 token → cap at 8
-   - These 3–8 nodes are the pages to cross-link against
-   - Fall back to reading `wiki/index.md` only if graph yields 0 candidates
+1. **Search for related pages** (zero token cost):
+   ```
+   python {{SCRIPTS}}/search.py "<new note tags and title keywords>" --top 8
+   ```
+   These are the pages to cross-link against.
+   If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
 2. For each related page found:
    - Append wikilink under `## Related` or `## Related Notes` or `## See Also` (create the section if missing)
    - If the new note contradicts something on the page, add a `> [!warning]` callout flagging the discrepancy
@@ -331,15 +333,33 @@ This step is mandatory after all modes.
    - Mode: <url | file | batch | research | study>
    ```
 
-5. Update the knowledge graph:
+5. Update search indexes (all four, in order):
    ```
-   python C:/Users/rushi/llm-wiki/wiki/build_graph.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_graph.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_routing.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_index.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_embeddings.py --update <folder/slug.md>
    ```
-   If the script is not found or `wiki/graph.json` does not exist, run a full build instead:
+   If scripts are not found or `wiki/graph.json` does not exist, run full builds instead:
    ```
-   python C:/Users/rushi/llm-wiki/wiki/build_graph.py
+   python {{SCRIPTS}}/build_graph.py
+   python {{SCRIPTS}}/build_routing.py
+   python {{SCRIPTS}}/build_index.py
+   python {{SCRIPTS}}/build_embeddings.py
    ```
-   For batch mode, run a full build (not `--update`) after all notes are written:
+   For batch mode, always run full builds (not `--update`) after all notes are written.
+
+6. **Suggest related pages** (only if `wiki/embeddings.db` exists):
    ```
-   python C:/Users/rushi/llm-wiki/wiki/build_graph.py
+   python {{SCRIPTS}}/search.py "<new note title and top 3 tags>" --top 8
    ```
+   From the results, exclude the newly written note itself. Compute tag Jaccard overlap between the
+   new note's tags and each candidate's tags. Rank by combined score (search rank + tag overlap).
+   Take top 5 and populate the `related:` field in the new note's frontmatter:
+   ```yaml
+   related:
+     - "[[candidate1]]"
+     - "[[candidate2]]"
+     ...
+   ```
+   Skip this step if the search returns NO_RESULTS or `wiki/embeddings.db` does not exist.

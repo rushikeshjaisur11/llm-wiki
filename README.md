@@ -151,97 +151,79 @@ Search: grep "^## \[" wiki/log.md | tail -10
 
 ---
 
+## Search architecture
+
+Query routing is handled by Python scripts in `skills/_wiki/` — Claude reads zero routing files. The 3-stage pipeline:
+
+1. **Stage 0 — Community match** (`routing.md`, O(1), ~500 bytes): tokenise query, match against community keywords
+2. **Stage 1 — FTS5 BM25** (`search.db`, Porter stemming): full-text search with community pre-filter, PMI synonym expansion, fuzzy correction
+3. **Stage 2 — sqlite-vec re-rank** (optional): semantic re-ranking if `sqlite-vec` + `sentence-transformers` are installed
+
+**Scaling:** 1k notes ~5ms | 10k notes ~10ms | 100k notes ~30ms
+
+**Token cost per query:** ~100 bytes (just returned paths) vs 4-8 KB with direct file reads.
+
+Scripts:
+- `search.py` — main search entry point (used by `/query`, `/ingest`)
+- `build_graph.py` — knowledge graph builder (community detection, edges)
+- `build_routing.py` — 2-tier compact Markdown routing index
+- `build_index.py` — SQLite FTS5 index + PMI synonym builder
+
+All scripts support `--update <path>` for O(1) incremental updates and full rebuild mode.
+
+---
+
 ## Repo structure
 
-```
-skills/
-├── core/               Installed for ALL vault types
-│   ├── ingest/
-│   ├── query/
-│   ├── lint/
-│   ├── daily/
-│   ├── tldr/
-│   ├── defuddle/
-│   ├── graphbuild/
-│   └── vault-setup/
-└── extras/
-    └── obsidian/       Installed ONLY for Obsidian users
-        ├── obsidian-cli/
-        ├── obsidian-markdown/
-        ├── obsidian-bases/
-        └── json-canvas/
+```text
+llm-wiki/
+├── pyproject.toml         (Package metadata and dependencies)
+└── src/
+    └── llm_wiki/
+        ├── cli.py         (Command-line wizard based on Typer+Rich)
+        ├── skills/        (Skills bundled into the package)
+        │   ├── _wiki/     Python search tools
+        │   ├── core/      Installed for ALL vault types
+        │   └── extras/    Installed for specific editors
 ```
 
 ---
 
 ## Setup
 
-### 1. Install Claude Code
+### 1. Install the LLM-Wiki package
 
+To install the configuration wizard and search dependencies globally on your machine:
+
+```bash
+pip install llm-wiki-claude
+```
+*(Or if running from source: `pip install -e .`)*
+
+### 2. Run the Install Wizard
+
+Run the interactive wizard from your terminal to configure your new vault and wire up the skills:
+
+```bash
+llm-wiki --install
+```
+
+This will automatically prompt you for your absolute vault path, configure your Claude context globally, and copy the required skills into your `~/.claude/` directory correctly patched.
+
+### 3. Start Claude Code and Build
+
+Install Claude Code globally if you haven't already:
 ```bash
 npm install -g @anthropic-ai/claude-code
 ```
 
-### 2. Run `/vault-setup` (recommended)
-
-From inside your vault folder:
-
+Navigate to your vault folder and start Claude:
 ```bash
 cd your-vault
 claude
 ```
 
-Then type `/vault-setup`. It will ask who you are and which tool you use, then build everything.
-
-### 3. Manual setup (alternative)
-
-```bash
-# From inside your vault root
-mkdir -p wiki .claude/skills
-
-# Install core skills (all vault types)
-cp -r path/to/llm-wiki/skills/core/* .claude/skills/
-
-# Obsidian only — also install extras
-cp -r path/to/llm-wiki/skills/extras/obsidian/* .claude/skills/
-```
-
-Create `wiki/index.md` and `wiki/log.md` with the templates above.
-
-Create `CLAUDE.md` with at minimum:
-```markdown
-# CLAUDE.md
-
-## Who I Am
-[2-3 sentences about your role and what this vault tracks]
-
-## Vault Tool
-vault-tool: obsidian   <!-- obsidian | foam | logseq | markdown | other -->
-
-## Wiki Schema
-- `wiki/index.md` — master catalog; read this first on any query
-- `wiki/log.md` — append-only activity log
-- Wikilink format: [[folder/slug]] (path-qualified)
-
-## Available Commands
-- /ingest      — add any source to the wiki
-- /query       — ask the wiki; file answers back
-- /lint        — full vault health-check + cleanup
-- /daily       — start the day
-- /tldr        — end-of-session summary
-- /graphbuild  — rebuild wiki knowledge graph
-```
-
-### 4. Wire globally (optional but recommended)
-
-Append to `~/.claude/CLAUDE.md`:
-
-```
-## My Personal Context
-At the start of every session, read /absolute/path/to/your-vault/CLAUDE.md for context about who I am, my work, and my conventions.
-```
-
-Now every Claude Code session on your machine has your vault context.
+Type `/vault-setup` into Claude. It will ask about your occupation and automatically scaffold your data tracking systems (`inbox/`, `projects/`, `wiki/index.md`, `CLAUDE.md`, etc.).
 
 ### 5. Enable defuddle (optional)
 
@@ -256,10 +238,14 @@ npm install -g defuddle
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI
+- Python 3.10+ (for search scripts)
+- PyYAML (`pip install pyyaml`)
 - Any markdown vault (Obsidian, VS Code + Foam, Logseq, or plain files)
 - For `/ingest` URL mode: `npm install -g defuddle`
 - For `/ingest research:` mode: Claude Code with web search enabled
 - For Obsidian `/lint` native accuracy: Obsidian CLI enabled (Settings → General → Command Line Interface)
+- Optional: `networkx` for structural community refinement in graph builder
+- Optional: `sqlite-vec` + `sentence-transformers` for Stage 2 semantic re-ranking
 
 ## License
 

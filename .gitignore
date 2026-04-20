@@ -1,0 +1,36 @@
+# Personal vault content — never committed
+CLAUDE.md
+memory.md
+wiki/
+daily/
+research/
+learning/
+data-engineering/
+projects/
+personal/
+archive/
+inbox/
+
+# Generated search indexes (rebuilt by /graphbuild)
+wiki/search.db
+wiki/synonyms.json
+wiki/graph.json
+wiki/graph/
+wiki/routing.md
+wiki/routing/
+
+# Python caches
+skills/_wiki/__pycache__/
+skills/_wiki/.vault_path
+
+# Obsidian internals
+.obsidian/
+
+# OS junk
+.DS_Store
+desktop.ini
+Thumbs.db
+
+dist/
+
+*__pycache__*
