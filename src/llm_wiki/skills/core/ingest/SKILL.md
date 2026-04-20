@@ -16,6 +16,7 @@ Detect from the argument passed:
 | YouTube URL (`youtube.com/watch`, `youtu.be/`, `youtube.com/shorts/`) | YouTube |
 | `https://` or `http://` URL (non-YouTube) | URL |
 | File path with extension (.pdf, .md, .docx, etc.) | Single file |
+| Image file path (.png, .jpg, .jpeg, .gif, .svg, .webp) | Single file (image) |
 | Directory path (ends in `/` or is a folder) | Batch folder |
 | `research: <topic>` | Research |
 | `study: <topic>` | Study |
@@ -129,13 +130,48 @@ Detect from the argument passed:
    - `learning/` — guides, tutorials, how-tos, courses
    - `data-engineering/` — pipelines, GCP tools, schemas, Kafka, Airflow
 4. Write `<folder>/<slug>.md` (slug = title lowercased, spaces → hyphens)
-5. If the article contains images: read text first, then view referenced images separately for additional context. Remind user: use Obsidian "Download attachments" hotkey (Ctrl+Shift+D) to save images to `raw/assets/` for offline reference.
+5. **Image handling**: After defuddle returns markdown, scan the content for `![alt](http...)` remote image references (supported extensions: `.png .jpg .jpeg .gif .svg .webp`):
+   - For each remote image URL, derive a local filename: `<note-slug>-<n>.<ext>` (n = 1, 2, …)
+   - Ensure `{{VAULT}}/attachments/` exists (create with Bash `mkdir -p` if not)
+   - Download: `curl -L --max-filesize 5242880 -o "{{VAULT}}/attachments/<filename>" "<url>"`
+   - If download succeeds: replace the `![alt](url)` reference in the note with `![[attachments/<filename>]]`
+   - If download fails or file > 5 MB: leave the original remote URL embed in place unchanged
+   - Only process extensions in the supported list; skip `.gif` if it exceeds 2 MB
 6. → **[Wiki Update]**
 
 ---
 
 ## Single file mode
 
+**If the source file is an image** (extension `.png .jpg .jpeg .gif .svg .webp`):
+1. Read the image visually
+2. Ask: "What is this diagram/image about? (One line caption)" — use this as the note title
+3. Classify to vault folder (same rules as URL mode)
+4. Copy the image to `attachments/`: run `cp "<source>" "{{VAULT}}/attachments/<slug>.<ext>"` via Bash
+5. Write `<folder>/<slug>.md`:
+   ```markdown
+   ---
+   title: <Caption>
+   date: <TODAY>
+   tags: [<topic-tags>, diagram]
+   type: <research | learning | data-engineering>
+   source: "<original filename>"
+   related: []
+   ---
+
+   # <Caption>
+
+   ![[attachments/<slug>.<ext>]]
+
+   ## Description
+   <!-- 2–3 sentences describing what the diagram shows -->
+
+   ## Related Notes
+   <!-- [[wikilinks to related vault notes]] -->
+   ```
+6. → **[Wiki Update]**
+
+**If the source file is a document** (PDF, PPTX, XLSX, DOCX, CSV, JSON, MD, TXT):
 1. Read the file completely
    - PDFs: read in 10-page chunks (`pages: "1-10"`, `"11-20"`, etc.) until all pages are read
    - Other formats: read in one call
@@ -148,7 +184,8 @@ Detect from the argument passed:
 
 ## Batch folder mode
 
-1. `Glob` all supported files in the folder: PDF, PPTX, XLSX, DOCX, CSV, JSON, MD, TXT
+1. `Glob` all supported files in the folder: PDF, PPTX, XLSX, DOCX, CSV, JSON, MD, TXT, PNG, JPG, JPEG, GIF, SVG, WEBP
+   Show image files separately from document files in the file list.
 2. Show the file list and ask:
 
    > Found **N files**. How should I process them?
@@ -168,8 +205,9 @@ Detect from the argument passed:
 
    Step 1: Read the COMPLETE file.
    - PDFs: check total page count, read in 10-page chunks until all pages done.
+   - Images (.png, .jpg, .jpeg, .gif, .svg, .webp): read visually, ask the user for a one-line caption, then treat as an image ingest (see image branch in single file mode). Copy to attachments/, write a note with ![[attachments/<slug>.<ext>]] embed. Return RESULT: SUCCESS with the slug.
    - Other formats: read in one call.
-   - If unreadable/binary: return RESULT: SKIPPED | FILE: <name> | REASON: unreadable
+   - If truly unreadable/binary (not an image): return RESULT: SKIPPED | FILE: <name> | REASON: unreadable
 
    Step 2: Classify into one vault folder:
    - research/     — papers, deep dives, LLMs, agentic systems
@@ -197,6 +235,27 @@ Detect from the argument passed:
 4. Collect results. Cross-link notes that share topic keywords (add wikilinks under `## Related`).
 5. Ask: "Delete original files from the folder?" → if yes, `rm` each successfully processed source file.
 6. → **[Wiki Update — batch]**
+
+---
+
+## Inbox drops (image detection)
+
+When the user runs `/ingest` with no argument, or when an `inbox/` scan is performed as part of lint, check for image files in `{{VAULT}}/inbox/`:
+
+1. `Glob inbox/*.{png,jpg,jpeg,gif,svg,webp}` (case-insensitive) — list any found images.
+2. If images are found, display them separately from documents:
+
+   > Found **N image(s)** in inbox:
+   > - `inbox/screenshot-2026-04-20.png`
+   > - `inbox/diagram.jpg`
+   > For each, I'll ask: **"What folder does this belong in, and what's the one-line caption?"**
+
+3. For each image, ask: "What is this? (e.g. `research — Kafka consumer group architecture`)"
+   Accept: `<folder> — <caption>` or free text; infer folder if obvious from caption.
+4. Process using the **Single file mode (image branch)** above:
+   - `cp` to `attachments/<slug>.<ext>`, write `<folder>/<slug>.md` with embed + description
+5. After writing the note, `rm` the original from `inbox/` (with user confirmation if processing > 1 image at once).
+6. → **[Wiki Update]** for each written note.
 
 ---
 

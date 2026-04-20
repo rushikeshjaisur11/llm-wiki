@@ -50,6 +50,7 @@ EXCLUDE_PREFIXES = {
     "daily/",
     "personal/",
     "projects/",
+    "attachments/",
 }
 
 # ── Tag → Community mapping (Tier 1) ────────────────────────────────────────
@@ -188,11 +189,12 @@ def parse_note(path: Path) -> dict:
             except yaml.YAMLError:
                 pass
 
-    raw_links = re.findall(r'\[\[([^\]|#\n]+?)(?:\|[^\]]*)?\]\]', content)
+    _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp")
+    raw_links = re.findall(r'(?<!\!)\[\[([^\]|#\n]+?)(?:\|[^\]]*)?\]\]', content)
     links_to = sorted({
         lnk.strip().replace("\\", "/").removesuffix(".md")
         for lnk in raw_links
-        if "/" in lnk
+        if "/" in lnk and not lnk.strip().lower().endswith(_IMAGE_EXTS)
     })
 
     tags = fm.get("tags") or []

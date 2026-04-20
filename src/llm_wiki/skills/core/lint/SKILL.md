@@ -42,6 +42,7 @@ Folders with 0 or 1 file — flag for review.
 
 **1f. Junk file types**
 `.pdf` anywhere outside `inbox/` or `sources/`, `.tmp`, `.bak`, `.DS_Store`, `desktop.ini`, `Thumbs.db`
+Image files (`.png .jpg .jpeg .gif .svg .webp`) are **not junk** when located under `attachments/`. Flag image files found outside `attachments/` (except `inbox/`) as misplaced — suggest moving them to `attachments/`.
 
 **1g. Scattered master summaries**
 Find all `MASTER_SUMMARY.md` and `master-summary*.md` files across `outputs/` and `archive/outputs/`.
@@ -57,11 +58,15 @@ List pages present on disk but missing from the index.
 
 **2b. Broken wikilinks**
 `Grep` for `\[\[.*\]\]` patterns across all vault `.md` files.
-For each link, check the target file exists. List broken ones with the file that contains them.
+For each link:
+- If the target ends in an image extension (`.png .jpg .jpeg .gif .svg .webp`): check that `attachments/<filename>` exists on disk — do NOT look for a `.md` file. A missing image file is a broken embed, not a broken wikilink.
+- Otherwise: check the target `.md` file exists. List broken ones with the file that contains them.
+Do not flag `![[attachments/...]]` image embeds as broken if the file is present in `attachments/`.
 
 **2c. Orphan pages**
 Run `obsidian backlinks` for each page (or Grep for `[[page-name]]` occurrences across vault).
 List pages with zero inbound links — they exist but nothing points to them.
+Do not include `attachments/` image files in the orphan check — they are assets, not content pages.
 
 **2d. Concept stubs**
 Scan all pages for proper noun / concept names (capitalized or quoted terms) that appear in prose 2+ times across multiple pages but have no dedicated wiki page.
@@ -80,6 +85,7 @@ For each page in `research/`, `learning/`, `data-engineering/`, `projects/`:
 - Grep the entire vault (excluding `wiki/index.md`, `wiki/routing/`, `wiki/log.md`) for `[[page-stem]]` or `[[folder/page-stem]]`
 - Flag pages with zero inbound content wikilinks as orphans
 - List up to 15 orphans with suggested cross-link targets (pages with similar tags)
+- Do not check `attachments/` — image files are assets and are intentionally not cross-linked.
 
 **2e-ext2. Stale content detector**
 For each page whose frontmatter `tags` contains any of: `llm`, `rag`, `framework`, `tooling`, `model-serving`, `claude-code`:
