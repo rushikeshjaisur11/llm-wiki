@@ -1,8 +1,9 @@
 import shutil
 from pathlib import Path
+
 import typer
 from rich.console import Console
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm, Prompt
 
 app = typer.Typer(help="LLM Wiki Command Line Interface")
 console = Console()
@@ -72,22 +73,14 @@ def install_per_file(skills: list[dict], dest_base: Path, agent: str) -> None:
             d.mkdir(parents=True, exist_ok=True)
             fm = f"---\nname: {name}\ndescription: {desc}\n---\n\n"
             (d / "SKILL.md").write_text(fm + body, encoding="utf-8")
-        elif agent == "cursor":
-            dest_base.mkdir(parents=True, exist_ok=True)
-            fm = f"---\ndescription: {desc}\n---\n\n"
-            (dest_base / f"{name}.mdc").write_text(fm + body, encoding="utf-8")
-        elif agent == "windsurf":
-            dest_base.mkdir(parents=True, exist_ok=True)
-            fm = f"---\ndescription: {desc}\ntrigger: agent_requested\n---\n\n"
-            (dest_base / f"{name}.md").write_text(fm + body, encoding="utf-8")
 
 
 def install_combined(skills: list[dict], dest_file: Path, agent: str) -> None:
     """Write all skills into a single combined file."""
     agent_intros = {
         "copilot": "These are custom slash-command skills for GitHub Copilot in this vault.",
-        "codex": "These are custom slash-command skills for OpenAI Codex in this vault.",
-        "gemini": "These are custom slash-command skills for Gemini CLI in this vault.",
+        "codex":   "These are custom slash-command skills for OpenAI Codex in this vault.",
+        "gemini":  "These are custom slash-command skills for Gemini CLI in this vault.",
     }
     lines = ["# LLM Wiki\n", f"{agent_intros.get(agent, '')}\n"]
     for skill in skills:
@@ -121,10 +114,7 @@ def run_installation():
         default="claude"
     )
 
-    if agent not in ("copilot", "codex"):
-        is_global = Confirm.ask("Install globally (recommended)? No = locally (vault-only)", default=True)
-    else:
-        is_global = False
+    is_global = Confirm.ask("Install globally (recommended)? No = locally (vault-only)", default=True)
 
     vault_tool = Prompt.ask(
         "Which vault tool do you use?",
@@ -136,24 +126,31 @@ def run_installation():
     vault_dir = Path(vault_path)
 
     # Resolve destinations
+    dest_base: Path
+    scripts_base: Path
     if agent == "claude":
         dest_base = (home / ".claude" / "skills") if is_global else (vault_dir / ".claude" / "skills")
         scripts_base = dest_base
     elif agent == "cursor":
-        dest_base = (home / ".cursor" / "rules") if is_global else (vault_dir / ".cursor" / "rules")
+        # Cursor 2.4+ skills: ~/.cursor/skills (global) or <vault>/.cursor/skills (local)
+        dest_base = (home / ".cursor" / "skills") if is_global else (vault_dir / ".cursor" / "skills")
         scripts_base = dest_base
     elif agent == "windsurf":
-        dest_base = (home / ".windsurf" / "rules") if is_global else (vault_dir / ".windsurf" / "rules")
+        # Windsurf Skills (not Rules): ~/.codeium/windsurf/skills (global) or <vault>/.windsurf/skills (local)
+        dest_base = (home / ".codeium" / "windsurf" / "skills") if is_global else (vault_dir / ".windsurf" / "skills")
         scripts_base = dest_base
     elif agent == "copilot":
-        dest_base = vault_dir / ".github"
-        scripts_base = vault_dir
+        dest_base = (home / ".claude" / "skills") if is_global else (vault_dir / ".claude" / "skills")
+        scripts_base = dest_base
     elif agent == "codex":
-        dest_base = vault_dir
-        scripts_base = vault_dir
+        # Codex uses .agents/skills/<name>/SKILL.md — same per-file format as Claude
+        dest_base = (home / ".agents" / "skills") if is_global else (vault_dir / ".agents" / "skills")
+        scripts_base = dest_base
     elif agent == "gemini":
         dest_base = (home / ".gemini") if is_global else vault_dir
         scripts_base = dest_base
+    else:
+        raise ValueError(f"Unknown agent: {agent}")
 
     pkg_dir = Path(__file__).parent.resolve()
     repo_skills = pkg_dir / "skills"
@@ -167,12 +164,8 @@ def run_installation():
     skills = collect_skills(repo_skills, vault_tool, agent)
 
     # Install skills
-    if agent in ("claude", "cursor", "windsurf"):
-        install_per_file(skills, dest_base, agent)
-    elif agent == "copilot":
-        install_combined(skills, dest_base / "copilot-instructions.md", agent)
-    elif agent == "codex":
-        install_combined(skills, dest_base / "AGENTS.md", agent)
+    if agent in ("claude", "copilot", "codex", "cursor", "windsurf"):
+        install_per_file(skills, dest_base, "claude")
     elif agent == "gemini":
         install_combined(skills, dest_base / "GEMINI.md", agent)
 
@@ -198,29 +191,16 @@ def run_installation():
             append_txt = f"\n## My Personal Context\nAt the start of every session, read {vault_path}/CLAUDE.md for context about who I am, my work, and my conventions.\n"
             with open(claude_md, "a", encoding="utf-8") as f:
                 f.write(append_txt)
-        elif agent == "cursor":
-            ctx_file = home / ".cursor" / "rules" / "llm-wiki-context.mdc"
-            ctx_file.parent.mkdir(parents=True, exist_ok=True)
-            ctx_file.write_text(
-                f"---\ndescription: LLM Wiki vault context\n---\n\nVault root: `{vault_path}`\nScripts: `{scripts_path}`\n",
-                encoding="utf-8"
-            )
-        elif agent == "windsurf":
-            ctx_file = home / ".windsurf" / "rules" / "llm-wiki-context.md"
-            ctx_file.parent.mkdir(parents=True, exist_ok=True)
-            ctx_file.write_text(
-                f"---\ndescription: LLM Wiki vault context\ntrigger: agent_requested\n---\n\nVault root: `{vault_path}`\nScripts: `{scripts_path}`\n",
-                encoding="utf-8"
-            )
+
 
     console.print(f"[bold green]Done. Skills installed to {dest_base}[/bold green]")
 
     next_steps = {
         "claude":    "Run [bold]/vault-setup[/bold] in Claude Code to build your folders.",
         "cursor":    "Open Cursor and type [bold]@ingest[/bold] to add sources.",
-        "windsurf":  "Skills installed — use [bold]@ingest[/bold] in Windsurf.",
-        "copilot":   "Skills loaded into [bold].github/copilot-instructions.md[/bold] — ask Copilot to ingest or query.",
-        "codex":     "Skills loaded into [bold]AGENTS.md[/bold] — run Codex in this vault.",
+        "windsurf":  "Skills installed — @mention or let Cascade auto-invoke them.",
+        "copilot":   "Skills installed to [bold].claude/skills/[/bold] — Copilot reads these automatically.",
+        "codex":     "Skills installed to [bold].agents/skills/[/bold] — Codex picks them up automatically.",
         "gemini":    "Skills loaded — ask Gemini to ingest or query.",
     }
     console.print(f"\n[magenta]Next Step:[/magenta] {next_steps[agent]}")
@@ -241,4 +221,5 @@ def main(
 
 
 if __name__ == "__main__":
+    app()
     app()
