@@ -7,6 +7,110 @@ description: Add any source to the wiki — URL, file, batch folder, research to
 
 Vault root: `{{VAULT}}/`
 
+## Vault Tool Detection (run before every ingest)
+
+Before writing any note, detect the user's vault tool by reading the `vault-tool:` line from the vault's CLAUDE.md:
+
+```
+Read: {{VAULT}}/CLAUDE.md
+Look for line: vault-tool: <value>
+```
+
+The value will be one of: `obsidian`, `foam`, `logseq`, `markdown`.
+
+Apply the formatting rules for that tool throughout the note. If the line is missing or unreadable, default to `markdown` (safest fallback).
+
+---
+
+## Note Quality Standards
+
+Every note written by this skill — regardless of mode — must follow these standards. They are non-negotiable. The **implementation** of each standard varies by vault tool (see table below); the **intent** does not.
+
+### Feature Support by Vault Tool
+
+| Feature | Obsidian | VS Code + Foam | Logseq | Plain Markdown |
+|---------|----------|---------------|--------|----------------|
+| Mermaid diagrams | ✅ Native | ✅ with Markdown Preview Mermaid extension | ✅ Native | ❌ Renders as code block — use ASCII/table instead |
+| Callouts `> [!tip]` | ✅ Native | ❌ Renders as plain blockquote | ❌ Renders as plain blockquote | ❌ Renders as plain blockquote |
+| Wikilinks `[[...]]` | ✅ Native | ✅ with Foam extension | ✅ Native | ❌ Use relative markdown links |
+| `---` separators | ✅ | ✅ | ✅ | ✅ |
+| Tables | ✅ | ✅ | ✅ | ✅ |
+| Fenced code blocks | ✅ | ✅ | ✅ | ✅ |
+
+### 1. Diagrams — Show Flows Visually
+
+Whenever content involves a process, pipeline, architecture, decision, timeline, or numeric comparison, add a visual. **Never replace a diagram with a prose paragraph.**
+
+**Obsidian / Logseq / Foam:**
+Use Mermaid fenced code blocks. Choose the right diagram type:
+- Multi-step process or pipeline → ` ```mermaid flowchart LR` or `flowchart TD`
+- Decision / "when to use X vs Y" → `flowchart TD` decision tree
+- Timeline or trigger cadence → `gantt`
+- Message sequence between systems → `sequenceDiagram`
+- Numeric distribution (durations, throughput, skew) → `xychart-beta`
+- Architecture with components and data flows → `flowchart LR` with subgraphs
+
+Color-code nodes by severity/category:
+- `style NodeName fill:#e74c3c,color:#fff` — red = critical / error
+- `style NodeName fill:#f39c12,color:#fff` — orange = warning
+- `style NodeName fill:#27ae60,color:#fff` — green = good / recommended
+- `style NodeName fill:#3498db,color:#fff` — blue = informational
+
+**Plain Markdown (fallback):**
+Use ASCII art or a structured table to represent the flow. Example:
+```
+Source → [Parse] → [Enrich] → Sink
+                       ↓
+                   [Dead Letter]
+```
+Or use a table with columns like: Step | Input | Output | Notes.
+
+### 2. Highlighted Insights — Surface What Matters
+
+Use visually distinct blocks to mark the most important content so a reader skimming the note can't miss it.
+
+**Obsidian** — use native callouts:
+| Callout | When to use |
+|---------|------------|
+| `> [!tip]` | Non-obvious best practice or rule of thumb |
+| `> [!warning]` | Common pitfall, deprecated behavior, or data-loss risk |
+| `> [!note]` | Clarification or constraint that qualifies a statement |
+| `> [!example]` | Worked example with real numbers, concrete inputs/outputs |
+
+**Foam / Logseq / Plain Markdown** — use bold-prefixed blockquotes:
+```markdown
+> **Tip:** Non-obvious best practice text here.
+
+> **Warning:** Common pitfall or data-loss risk here.
+
+> **Example:** Concrete worked example with real numbers here.
+```
+
+Every note must have at least one highlighted **Example** block with a concrete worked example (real numbers, real code, real results — never `<placeholder>` or `TODO`).
+
+### 3. Concrete Examples with Numbers
+
+Every abstract concept must be grounded with a concrete example immediately following it. Rules:
+- Use realistic numbers: dataset sizes in GB/TB, latency in ms, row counts in millions
+- Show before/after: what the problem looks like, what the fix produces
+- Code examples must be runnable: real function names, real config keys, real values
+- Never use `<placeholder>`, `<your-value>`, or `TODO` in code examples
+
+### 4. Comparison Tables
+
+Whenever two or more options, strategies, or tools are compared, use a markdown table. Always include a "When to Use" or "Tradeoff" column. Decision trees (Mermaid flowchart for Obsidian/Logseq/Foam; ASCII for markdown) are preferred when the choice is conditional.
+
+### 5. Section Separators
+
+Use `---` between every major H2 section regardless of vault tool. Improves readability in all renderers.
+
+### 6. Wikilinks
+
+**Obsidian / Foam / Logseq:** Use `[[folder/slug]]` wikilink format.  
+**Plain Markdown:** Use standard relative links: `[Note Title](../folder/slug.md)`.
+
+---
+
 ## Mode detection
 
 Detect from the argument passed:
@@ -49,8 +153,8 @@ Detect from the argument passed:
 
    **Thesis** — 1–2 sentences: what is the speaker trying to convince you of? What problem do they claim to solve?
 
-   **Key Insights** (5–8 bullets) — the most important ideas, not paraphrases. Concrete and specific.
-   Example: "Paged attention reduces KV cache fragmentation by allocating in fixed-size blocks, enabling ~3x longer context at same memory."
+   **Key Insights** (5–8 bullets) — the most important ideas, not paraphrases. Concrete and specific. Must include real numbers, benchmark results, or code-level details where the speaker provides them.
+   Example: "Paged attention reduces KV cache fragmentation by allocating in fixed-size blocks, enabling ~3× longer context at same memory budget."
 
    **Key Moments** (3–8 timestamp anchors) — moments where a major concept is introduced, a demo begins, a key claim is made, or a chapter starts. Use the nearest timestamp from the transcript. Format: `[MM:SS]` or `[HH:MM:SS]`.
 
@@ -61,7 +165,7 @@ Detect from the argument passed:
 5. Ask: "Does this capture what matters? Anything to adjust?"
    Adjust based on response.
 
-6. Write `<folder>/<slug>.md` (slug = title lowercased, spaces → hyphens, strip punctuation):
+6. Write `<folder>/<slug>.md` (slug = title lowercased, spaces → hyphens, strip punctuation) following **Note Quality Standards** above:
 
    ```markdown
    ---
@@ -83,27 +187,52 @@ Detect from the argument passed:
    > **Watch:** <youtube_url>
 
    ## Thesis
-   <!-- 1–2 sentence summary of the speaker's main argument -->
+   <!-- 1–2 sentence summary of the speaker's main argument — include the key claim with a number if one exists -->
+
+   ---
 
    ## Key Insights
+   <!-- 5–8 bullets — concrete and specific, real numbers, not paraphrases -->
    - ...
+
+   ---
+
+   ## How It Works
+   <!-- If the video explains a system, process, or architecture — add a Mermaid diagram.
+        Skip this section if the video is purely opinion/interview with no technical mechanism. -->
+
+   ```mermaid
+   flowchart LR
+       A[Component] --> B[Component] --> C[Output]
+   ```
+
+   > [!example] Worked example from the video
+   > <!-- Pull a concrete example the speaker gave — real numbers, real benchmark, real code -->
+
+   ---
 
    ## Key Moments
    | Time | What happens |
    |------|-------------|
    | [MM:SS] | ... |
 
+   ---
+
    ## Quotable
    > "..."
 
+   ---
+
    ## Chapters
    <!-- Only if the video has explicit chapters — list with timestamps and 1-line summary each -->
+
+   ---
 
    ## Technical Terms
    <!-- Link to existing vault pages; flag new ones with "(→ /ingest?)" -->
 
    ## Open Questions
-   <!-- What this raised that I want to dig into -->
+   <!-- What this raised that I want to dig into — be specific -->
    ```
 
 7. Do NOT include the full transcript in the note.
@@ -129,7 +258,13 @@ Detect from the argument passed:
    - `research/` — deep technical: papers, architecture, LLMs, agents, systems
    - `learning/` — guides, tutorials, how-tos, courses
    - `data-engineering/` — pipelines, GCP tools, schemas, Kafka, Airflow
-4. Write `<folder>/<slug>.md` (slug = title lowercased, spaces → hyphens)
+4. Write `<folder>/<slug>.md` (slug = title lowercased, spaces → hyphens) following the **Note Quality Standards** above:
+   - Open with `## TL;DR` — 1–2 punchy sentences
+   - Add `---` separators between H2 sections
+   - For any process, architecture, or flow described → add a Mermaid diagram
+   - For any comparison of options/tools → add a table with a "When to Use" column
+   - For any key concept → add a `> [!example]` callout with concrete numbers
+   - For warnings or gotchas → use `> [!warning]` or `> [!tip]` callouts
 5. **Image handling**: After defuddle returns markdown, scan the content for `![alt](http...)` remote image references (supported extensions: `.png .jpg .jpeg .gif .svg .webp`):
    - For each remote image URL, derive a local filename: `<note-slug>-<n>.<ext>` (n = 1, 2, …)
    - Ensure `{{VAULT}}/attachments/` exists (create with Bash `mkdir -p` if not)
@@ -177,7 +312,13 @@ Detect from the argument passed:
    - Other formats: read in one call
 2. Write 2–3 sentence synthesis → ask user to confirm emphasis
 3. Classify to vault folder (same rules as URL mode)
-4. Write full markdown note — complete content, not a summary — with standard frontmatter
+4. Write full markdown note following **Note Quality Standards** above:
+   - `## TL;DR` at the top — 1–2 sentences: what it is, the key takeaway
+   - `---` separators between H2 sections
+   - At least one Mermaid diagram if the source contains any process, architecture, or data flow
+   - `> [!example]` callout for any key concept explained abstractly — ground it with real numbers
+   - `> [!warning]` or `> [!tip]` for any critical pitfalls or best practices called out in the source
+   - Comparison tables (with a "When to Use" or "Tradeoff" column) wherever alternatives are compared
 5. → **[Wiki Update]**
 
 ---
@@ -222,7 +363,14 @@ Detect from the argument passed:
    Use frontmatter: title, date, tags, source (original filename), type.
 
    Step 4: Write summary note to: {{VAULT}}/<folder>/<stem>.md
-   Format: frontmatter + ## TL;DR (1 punchy sentence) + ## Key Points (3–5 bullets) + ## Related (leave placeholder comment)
+   Format:
+   - frontmatter (title, date, tags, type, source, related)
+   - ## TL;DR — 1–2 punchy sentences: what it is, why it matters, the key insight
+   - ## Key Points — 5–8 bullets, concrete and specific (real numbers, real names, not vague summaries)
+   - ## How It Works — include at least one Mermaid diagram (flowchart or sequenceDiagram) if the source explains a process, architecture, or flow
+   - ## Key Example — a `> [!example]` callout with a concrete worked example (real inputs → real outputs with numbers)
+   - ## Trade-offs or When to Use — comparison table if alternatives are discussed
+   - ## Related — leave placeholder comment
 
    Step 5: Return exactly:
    RESULT: SUCCESS
@@ -283,32 +431,73 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
    # <Topic>
 
-   ## Summary
-   <!-- 3–5 sentence overview -->
+   ## TL;DR
+   <!-- 1–2 punchy sentences: what this is, why it matters, the key insight -->
 
-   ## Key Concepts
-   <!-- Core ideas, definitions, components -->
+   ---
+
+   ## Summary
+   <!-- 3–5 sentence overview — include at least one concrete number or benchmark -->
+
+   ---
 
    ## How It Works
-   <!-- Architecture, mechanism, or process -->
+   <!-- Architecture, mechanism, or process.
+        Obsidian/Logseq/Foam: use a Mermaid diagram (flowchart LR for pipelines,
+        sequenceDiagram for message flows, flowchart TD for decisions).
+        Plain Markdown: use an ASCII flow or structured table instead. -->
+
+   <!-- Obsidian/Logseq/Foam: -->
+   ```mermaid
+   flowchart LR
+       A[Input] --> B[Process] --> C[Output]
+   ```
+
+   <!-- Plain Markdown fallback:
+   Input → [Process] → Output
+   -->
+
+   <!-- Follow with a concrete worked example using the correct callout for the vault tool:
+        Obsidian:              > [!example] Worked example
+        Foam/Logseq/Markdown:  > **Example:** ... -->
+
+   > [!example] Worked example
+   > <!-- Real numbers: e.g. "100 GB input → 3 stages → 7.5 GB read with DPP enabled" -->
+
+   ---
+
+   ## Key Concepts
+   <!-- Core ideas and definitions — one subsection (###) per concept.
+        Each concept: definition + a concrete example or analogy + a comparison table if alternatives exist. -->
+
+   ---
 
    ## Use Cases
-   <!-- Where this is applied, especially in AI/data engineering -->
+   <!-- Where this is applied — use a table: Use Case | Why This Fits | Alternative -->
 
-   ## Current State (as of <TODAY>)
-   <!-- Latest tools, models, frameworks, benchmarks -->
+   ---
 
    ## Trade-offs
-   <!-- Pros, cons, when to use vs. alternatives -->
+   <!-- MUST be a comparison table (all tools) or Mermaid decision tree (Obsidian/Logseq/Foam only).
+        Columns: Approach | Pros | Cons | When to Use -->
+
+   ---
+
+   ## Current State (as of <TODAY>)
+   <!-- Latest tools, models, frameworks, benchmarks — include version numbers -->
+
+   ---
+
+   ## Open Questions
+   <!-- What I still want to understand -->
+
+   ---
 
    ## Related Topics
    <!-- [[wikilinks to related vault notes]] -->
 
    ## Sources
    <!-- Links to papers, articles, docs used -->
-
-   ## Open Questions
-   <!-- What I still want to understand -->
    ```
 
 5. → **[Wiki Update]**
@@ -337,23 +526,74 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
    # <Topic>
 
-   ## What I Already Know
-   <!-- Pulled from existing vault notes -->
+   ## TL;DR
+   <!-- 1–2 punchy sentences: what this is, why it matters, and the key insight to hold onto -->
 
-   ## Key Concepts
-   <!-- Fill in as you study -->
+   ---
+
+   ## What I Already Know
+   <!-- Pulled from existing vault notes — concrete facts and code, not vague recollections -->
+
+   ---
 
    ## How It Works
-   <!-- Mechanism, architecture, or process -->
+   <!-- Mechanism, architecture, or process.
+        Obsidian/Logseq/Foam: use a Mermaid diagram (flowchart LR, sequenceDiagram, flowchart TD).
+        Plain Markdown: use ASCII art or a Step | Input | Output table instead. -->
 
-   ## Use Cases
-   <!-- Where and why this is used -->
+   <!-- Obsidian/Logseq/Foam: -->
+   ```mermaid
+   flowchart LR
+       A[Input] --> B[Process] --> C[Output]
+   ```
+
+   <!-- Plain Markdown fallback:
+   Step 1: Input → [Process] → Output
+   Step 2: ...
+   -->
+
+   <!-- Concrete worked example — use the correct syntax for the vault tool:
+        Obsidian:              > [!example] Worked example
+        Foam/Logseq/Markdown:  > **Example:** ... -->
+
+   > [!example] Worked example
+   > <!-- Show a concrete end-to-end example: real sizes, real latencies, real row counts.
+   >      Before/after is ideal: "Without X: 100 GB read. With X: 7.5 GB read." -->
+
+   ---
+
+   ## Key Concepts
+   <!-- One ### subsection per concept. Each must have:
+        1. A one-sentence definition
+        2. A concrete example (numbers or code)
+        3. A comparison table or callout if there are gotchas -->
+
+   ---
 
    ## Code / Examples
-   <!-- Snippets, commands, implementations -->
+   <!-- Runnable code only — real function names, real config keys, real values.
+        Show the bad pattern first (commented), then the correct pattern. -->
+
+   ```python
+   # Bad: <why this is wrong>
+   # example...
+
+   # Good: <why this works>
+   # example...
+   ```
+
+   ---
+
+   ## Trade-offs & When to Use
+   <!-- Comparison table OR Mermaid decision tree flowchart.
+        Columns: Option | Pros | Cons | Use When -->
+
+   ---
 
    ## Questions & Gaps
-   <!-- What I still don't understand -->
+   <!-- What I still don't understand — be specific, not "learn more about X" -->
+
+   ---
 
    ## Resources
    <!-- Links, papers, courses -->
