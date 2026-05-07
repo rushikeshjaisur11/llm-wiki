@@ -41,15 +41,22 @@ Read each identified page fully. While reading, note:
 - Context, background, examples
 - Contradictions between pages (same concept, conflicting claims)
 - Gaps (question requires knowledge the wiki doesn't have)
+- **Freshness signals**: note each page's `last_verified` and `confidence` from frontmatter
 
 ---
 
 ## Step 4: Synthesize
 
+Before writing the answer, surface freshness for any notes older than their TTL (from `SCHEMA.md`):
+- Prepend a `> [!warning] Stale source` callout if any cited note has `last_verified` past its TTL
+- Show `confidence` level inline when citing a note with `confidence: low` or `medium`
+- Prefer `provenance: extracted` notes over `inferred` when there is a conflict
+
 Write the answer in the detected format:
 
 **Inline answer (default):**
 Synthesize with `[[wikilink]]` citations — cite specific pages, not just topics. Be direct: lead with the answer, support with evidence.
+After the answer, add one line: `> Sources: [[note1]] (verified YYYY-MM-DD, confidence: high), [[note2]] (verified YYYY-MM-DD, confidence: medium)`
 
 **Comparison table:**
 ```markdown

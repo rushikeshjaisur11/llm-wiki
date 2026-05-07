@@ -607,6 +607,41 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
 ---
 
+## Learning Folder Awareness
+
+When writing a note into `learning/`, read `{{VAULT}}/SCHEMA.md` and `{{VAULT}}/learning/CONVENTIONS.md` before writing.
+
+Apply these rules:
+
+1. **Frontmatter must include the extended LLM Wiki v2 fields:**
+   ```yaml
+   last_verified: <TODAY>          # always set to today when creating
+   confidence: high | medium | low  # high = verified against source; medium = mostly verified; low = from memory
+   provenance: extracted | inferred | ambiguous
+   verified_against_version: "<lib>==<version>"   # omit if not a library note
+   superseded_by: null
+   contradicts: []
+   ```
+
+2. **Determine topic class from tags → set TTL** (for context when proposing last_verified):
+   - Framework APIs (langgraph, langchain, google-adk, fastapi): TTL = 90 days
+   - Cloud services (gcp, aws, vertexai): TTL = 90 days
+   - Architecture concepts: TTL = 180 days
+   - Foundations (dsa, sql, ml theory): TTL = 365 days
+
+3. **Folder triad prompt**: For notes going into a runtime folder (langgraph, langchain, rag, fastapi, vector-db, llm-infra, agents), ask:
+   > "Is this content for a concept note, or does it belong in `production.md`, `cookbook.md`, `troubleshooting.md`, or `changelog.md`?"
+   If the user says cookbook/production/troubleshooting, append to the appropriate file rather than creating a new concept note.
+
+4. **Contradiction detection**: After writing the note, search for related pages and check if any existing page contradicts a claim in the new note. If a contradiction is found:
+   - Add `contradicts: [[existing-note]]` to new note's frontmatter
+   - Add `contradicts: [[new-note]]` to the existing note's frontmatter
+   - Add a `> [!warning] Contradiction` callout in the new note pointing to the conflict
+
+5. **Anonymization**: Apply the employer anonymization rule from `CLAUDE.md` — replace employer name with "our platform" / "our workload".
+
+---
+
 ## Wiki Update (runs after every mode)
 
 This step is mandatory after all modes.
@@ -630,6 +665,7 @@ This step is mandatory after all modes.
    - Note: [[folder/slug]]
    - Updated: [[page1]], [[page2]]
    - Mode: <url | file | batch | research | study>
+   - Skills_touched: [ingest]
    ```
 
 5. Update search indexes (all four, in order):

@@ -76,12 +76,54 @@ One free-text question about who you are, then asks which markdown tool you use.
 
 ---
 
+### `/refresh` — Re-verify a note against its source
+
+Fetches the canonical `source:` URL for a note, diffs its current claims against the live docs, proposes updates, and bumps `last_verified`. Closes the staleness loop without deleting the original.
+
+```
+/refresh learning/langgraph/state-and-reducers
+```
+
+---
+
+### `/audit` — Quarterly vault health report
+
+Full-vault quality scan: staleness by topic class, confidence distribution, contradictions, orphans, dangling links, and learning folder structure gaps. Produces a dated `wiki/audit-YYYY-Q.md` dashboard. Run once per quarter.
+
+---
+
+### `/supersede` — Mark a note as replaced
+
+Marks an old note as `superseded_by:` a newer one, adds a visible `SUPERSEDED` callout, and cross-links both notes. Preserves history instead of deleting.
+
+```
+/supersede learning/langgraph/old-state-guide learning/langgraph/state-and-reducers
+```
+
+---
+
+### `/promote` — Daily note → durable wiki
+
+Extracts a snippet from a daily note and promotes it into the durable wiki (cookbook, troubleshooting, or a new concept note) with full frontmatter, version pin, and anonymization. Closes the daily → semantic memory loop.
+
+---
+
+### `/cookbook-add` — Add a recipe to a tech's cookbook
+
+Appends a version-pinned, copy-paste ready code recipe to `learning/<tech>/cookbook.md`. Creates the file if it doesn't exist.
+
+```
+/cookbook-add langgraph
+```
+
+---
+
 ### Utility skills
 
 | Skill | Purpose |
 |-------|---------|
-| `/defuddle` | Fetch any URL as clean markdown (used internally by `/ingest`) |
-| `/graphbuild` | Rebuild the wiki knowledge graph from scratch — run after bulk ingests or when community assignments need refreshing |
+| `/defuddle` | Fetch any URL as clean markdown (used internally by `/ingest` and `/refresh`) |
+| `/graphbuild` | Rebuild the wiki knowledge graph — includes stale and low-confidence subgraph reports |
 | `/obsidian-cli` | Direct vault operations via Obsidian CLI (Obsidian only) |
 | `/obsidian-markdown` | Reference for Obsidian-specific syntax: wikilinks, callouts, embeds, frontmatter (Obsidian only) |
 | `/obsidian-bases` | Create and edit Obsidian Bases `.base` files — table/card views, filters, formulas (Obsidian only) |
@@ -103,6 +145,43 @@ One free-text question about who you are, then asks which markdown tool you use.
 | obsidian-cli skill | ✓ | — | — | — |
 | obsidian-bases skill | ✓ | — | — | — |
 | json-canvas skill | ✓ | — | — | — |
+
+---
+
+## LLM Wiki v2 — Freshness & Anti-Rot System
+
+All notes follow the **LLM Wiki v2** pattern: every claim carries provenance and a TTL. Skills enforce this automatically.
+
+### Frontmatter schema (all notes)
+
+```yaml
+last_verified: 2026-05-08         # date claims were verified against source
+confidence: high                  # high | medium | low
+provenance: extracted             # extracted | inferred | ambiguous
+verified_against_version: "langgraph==1.0.2"  # version tested against (library notes)
+superseded_by: null               # [[note]] if this note is obsolete
+contradicts: []                   # cross-links to conflicting notes
+```
+
+### TTL rules (staleness thresholds)
+
+| Topic class | Tags | TTL |
+|---|---|---|
+| Framework APIs | langgraph, langchain, google-adk | 90 days |
+| Cloud services | gcp, aws, vertexai | 90 days |
+| Security / compliance | security | 60 days |
+| Architecture concepts | architecture | 180 days |
+| Foundations | dsa, sql, ml | 365 days |
+
+`/lint` flags overdue notes. `/refresh` re-verifies against source. `/audit` gives the quarterly dashboard.
+
+### Supersession protocol
+
+When a note is outdated, `/supersede` marks it as `superseded_by:` the new note and adds a `SUPERSEDED` callout. Don't delete — history compounds.
+
+### Daily → semantic memory loop
+
+Daily notes capture raw ideas. `/promote` extracts and files them into the durable wiki (cookbook, troubleshooting, or concept notes) with full frontmatter and version pins.
 
 ---
 

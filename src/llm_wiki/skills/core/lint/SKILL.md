@@ -27,9 +27,9 @@ Check each file's content against folder rules:
 - `learning/` — study notes organized by technology subfolder; loose `.md` files directly in `learning/` (not in a subfolder) are misplaced
   - `learning/python/` — Python language notes
   - `learning/python/tooling/` — uv, ruff, pyproject.toml, etc.
-  - `learning/fastapi/` — FastAPI course
+  - `learning/fastapi/` — FastAPI course (numbered 01-06) + `genai-services/` subfolder
   - `learning/git/` — Git notes
-  - `learning/building-generative-ai-services/` — O'Reilly book notes
+  - `learning/google-adk/` — Google ADK notes (concept files + production, evaluation, etc.)
 - `research/` — deep technical dives, papers, LLMs, agents
 - `data-engineering/` — GCP, Kafka, Airflow, BigQuery, pipelines
 - `projects/` — specific active project notes
@@ -87,20 +87,44 @@ For each page in `research/`, `learning/`, `data-engineering/`, `projects/`:
 - List up to 15 orphans with suggested cross-link targets (pages with similar tags)
 - Do not check `attachments/` — image files are assets and are intentionally not cross-linked.
 
-**2e-ext2. Stale content detector**
-For each page whose frontmatter `tags` contains any of: `llm`, `rag`, `framework`, `tooling`, `model-serving`, `claude-code`:
-- Check `updated` field (or `created` if `updated` absent)
-- Flag pages where that date is > 60 days before today as potentially stale
-- List them with their date and a suggested web search query to verify currency
+**2e-ext2. Staleness scan (LLM Wiki v2)**
+Read TTL rules from `{{VAULT}}/SCHEMA.md` (TTL Rules table).
+For each `.md` file in `learning/`, `research/`, `wiki/`:
+- Read frontmatter `last_verified` field (fall back to `updated`, then `created`)
+- Determine topic class from `tags` to get TTL
+- Flag files where `today - last_verified > TTL` as overdue
+Sort by most overdue first. Report format:
+```
+| Note | Tags | last_verified | TTL | Days overdue |
+```
+Group by topic class. Suggest using `/refresh <note>` to re-verify.
 
 **2e-ext3. Frontmatter schema validator**
-Canonical fields: `title`, `created`, `updated`, `tags`, `type`, `source`, `related`
+Canonical fields from `SCHEMA.md`: `title`, `created`, `updated`, `last_verified`, `confidence`, `provenance`, `tags`, `type`, `source`, `related`
 For each page, flag:
 - Missing `title` (note: `title` may be set or derived from first `# Heading`)
 - `date` field present instead of `created` (needs migration — run `migrate_frontmatter.py`)
 - Missing `type` field
 - `related` field completely absent (vs `related: []` which is fine)
+- Missing `last_verified` field (new requirement — default to `created` date)
+- Missing `confidence` field (new requirement)
+- Missing `provenance` field (new requirement)
 Summarise as: "N pages need frontmatter migration" with a suggestion to run `python {{SCRIPTS}}/migrate_frontmatter.py --write`
+
+**2e-ext4. Version-pin scan**
+In `learning/*/production.md` and `learning/*/cookbook.md` files:
+- Grep for fenced code blocks that lack a `# tested: <lib>==<version>` comment in the first 3 lines
+- List unpinned blocks as: file | block line number | suggested pin format
+This helps catch snippets that may become stale without a version marker.
+
+**2e-ext5. Learning folder structure check**
+Read `{{VAULT}}/learning/CONVENTIONS.md` for the three-tier policy.
+For each runtime-tier folder (langgraph, langchain, google-adk, rag, fastapi, vector-db, llm-infra, agents):
+- Check presence of: `index.md`, `production.md`, `cookbook.md`
+- Report missing required files: "langgraph is missing: production.md, cookbook.md"
+For each folder in `learning/`:
+- Check that `index.md` exists; flag missing ones
+- Check that no file is named `00-*.md` or uses Title-Case (except inside course subfolders with numbered notes)
 
 **2f. Actionable next research**
 From `## Open Questions` sections across all pages + concept stubs + gaps, produce 3–5 specific research topics with actionable web search queries:
@@ -129,8 +153,10 @@ Show the consolidated report before touching anything:
 **Not in index (N pages):** [list]
 **Broken wikilinks (N):** [[link]] in file.md
 **Orphan pages (N):** [list with suggested cross-link targets]
-**Stale content (N pages > 60 days old on fast-moving tags):** [list with dates]
-**Frontmatter issues (N pages):** [summary + migration command if applicable]
+**Stale notes (N overdue by TTL class):** [table: note | last_verified | TTL | days overdue]
+**Missing frontmatter fields (N pages):** [summary + migration command if applicable]
+**Unpinned code blocks (N):** [file | line | suggested fix]
+**Missing required learning files (N):** [folder | missing files]
 **Concept stubs to create (N):** [list]
 **Contradictions (N):** [description]
 
