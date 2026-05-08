@@ -5,8 +5,8 @@ description: Bulk-fix low-scoring vault notes. Generates missing quality-rubric 
 
 # Uplift — Bulk Note Quality Fix
 
-Vault root: `c:/Users/rushi/llm-wiki-memory/`
-Quality rubric canonical source: `c:/Users/rushi/llm-wiki-memory/SCHEMA.md` § Quality Rubric v2
+Vault root: `{{VAULT}}/`
+Quality rubric canonical source: `{{VAULT}}/SCHEMA.md` § Quality Rubric v2
 Gold-standard templates: `learning/langgraph/index.md`, `learning/langchain/01-*.md`, `learning/google-adk/index.md` (all 7/7)
 
 ---
@@ -100,7 +100,7 @@ Read the full note. Also read the highest-scoring note in the same folder (from 
 **see-also** (if missing):
 - Run embedding search to find real vault links:
   ```
-  python C:/Users/rushi/.claude/skills/_wiki/search.py "<note title and tags>" --top 8
+  python {{SCRIPTS}}/search.py "<note title and tags>" --top 8
   ```
   Pick 3–5 most relevant results. Do NOT invent links — only use paths returned by the search.
   If search unavailable, read `wiki/index.md` and pick links manually by topic relevance.

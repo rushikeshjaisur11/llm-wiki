@@ -5,7 +5,7 @@ description: Full vault health-check — scans for file system issues (misplaced
 
 # Lint — Full Vault Health Check
 
-Vault root: `c:/Users/rushi/llm-wiki-memory/`
+Vault root: `{{VAULT}}/`
 
 ## Argument parsing
 
@@ -130,7 +130,7 @@ Flag cases where two pages make opposing claims about the same concept (e.g. one
 
 
 **2e-ext2. Staleness scan (LLM Wiki v2)**
-Read TTL rules from `c:/Users/rushi/llm-wiki-memory/SCHEMA.md` (TTL Rules table).
+Read TTL rules from `{{VAULT}}/SCHEMA.md` (TTL Rules table).
 For each `.md` file in `learning/`, `research/`, `wiki/`:
 - Read frontmatter `last_verified` field (fall back to `updated`, then `created`)
 - Determine topic class from `tags` to get TTL
@@ -151,7 +151,7 @@ For each page, flag:
 - Missing `last_verified` field (new requirement — default to `created` date)
 - Missing `confidence` field (new requirement)
 - Missing `provenance` field (new requirement)
-Summarise as: "N pages need frontmatter migration" with a suggestion to run `python C:/Users/rushi/.claude/skills/_wiki/migrate_frontmatter.py --write`
+Summarise as: "N pages need frontmatter migration" with a suggestion to run `python {{SCRIPTS}}/migrate_frontmatter.py --write`
 
 **2e-ext4. Version-pin scan**
 In `learning/*/production.md` and `learning/*/cookbook.md` files:
@@ -160,12 +160,12 @@ In `learning/*/production.md` and `learning/*/cookbook.md` files:
 This helps catch snippets that may become stale without a version marker.
 
 **2e-ext5. v2 Quality Score (lint.py)**
-Run `python C:/Users/rushi/.claude/skills/_wiki/lint.py` to produce a per-folder quality leaderboard.
+Run `python {{SCRIPTS}}/lint.py` to produce a per-folder quality leaderboard.
 Scores each note 0-7 against: frontmatter completeness, TL;DR callout, mental-model diagram, worked example, "When NOT to use", footer See Also, version pins (prod/cookbook).
 Output is written to `wiki/lint-YYYY-MM-DD.md`. Report the per-folder average and worst-5 notes per folder in the Phase 2 report. Do NOT open the raw output file — just run the script and read the first 80 lines.
 
 **2e-ext6. Learning folder structure check**
-Read `c:/Users/rushi/llm-wiki-memory/learning/CONVENTIONS.md` for the three-tier policy.
+Read `{{VAULT}}/learning/CONVENTIONS.md` for the three-tier policy.
 For each runtime-tier folder (langgraph, langchain, google-adk, rag, fastapi, vector-db, llm-infra, agents):
 - Check presence of: `index.md`, `production.md`, `cookbook.md`
 - Report missing required files: "langgraph is missing: production.md, cookbook.md"

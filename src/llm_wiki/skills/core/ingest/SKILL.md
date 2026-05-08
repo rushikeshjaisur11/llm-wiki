@@ -5,14 +5,14 @@ description: Add any source to the wiki — URL, file, batch folder, research to
 
 # Ingest — Add to Wiki
 
-Vault root: `c:/Users/rushi/llm-wiki-memory/`
+Vault root: `{{VAULT}}/`
 
 ## Vault Tool Detection (run before every ingest)
 
 Before writing any note, detect the user's vault tool by reading the `vault-tool:` line from the vault's CLAUDE.md:
 
 ```
-Read: c:/Users/rushi/llm-wiki-memory/CLAUDE.md
+Read: {{VAULT}}/CLAUDE.md
 Look for line: vault-tool: <value>
 ```
 
@@ -206,8 +206,8 @@ Detect from the argument passed:
    - For warnings or gotchas → use `> [!warning]` or `> [!tip]` callouts
 5. **Image handling**: After defuddle returns markdown, scan the content for `![alt](http...)` remote image references (supported extensions: `.png .jpg .jpeg .gif .svg .webp`):
    - For each remote image URL, derive a local filename: `<note-slug>-<n>.<ext>` (n = 1, 2, …)
-   - Ensure `c:/Users/rushi/llm-wiki-memory/attachments/` exists (create with Bash `mkdir -p` if not)
-   - Download: `curl -L --max-filesize 5242880 -o "c:/Users/rushi/llm-wiki-memory/attachments/<filename>" "<url>"`
+   - Ensure `{{VAULT}}/attachments/` exists (create with Bash `mkdir -p` if not)
+   - Download: `curl -L --max-filesize 5242880 -o "{{VAULT}}/attachments/<filename>" "<url>"`
    - If download succeeds: replace the `![alt](url)` reference in the note with `![[attachments/<filename>]]`
    - If download fails or file > 5 MB: leave the original remote URL embed in place unchanged
    - Only process extensions in the supported list; skip `.gif` if it exceeds 2 MB
@@ -221,7 +221,7 @@ Detect from the argument passed:
 1. Read the image visually
 2. Ask: "What is this diagram/image about? (One line caption)" — use this as the note title
 3. Classify to vault folder (same rules as URL mode)
-4. Copy the image to `attachments/`: run `cp "<source>" "c:/Users/rushi/llm-wiki-memory/attachments/<slug>.<ext>"` via Bash
+4. Copy the image to `attachments/`: run `cp "<source>" "{{VAULT}}/attachments/<slug>.<ext>"` via Bash
 5. Write `<folder>/<slug>.md`:
    ```markdown
    ---
@@ -287,7 +287,7 @@ Detect from the argument passed:
    Subagent prompt template (fill in placeholders):
    ```
    Process a single file for an Obsidian vault.
-   File: <ABSOLUTE_PATH> | Date: <TODAY> | Vault root: c:/Users/rushi/llm-wiki-memory/
+   File: <ABSOLUTE_PATH> | Date: <TODAY> | Vault root: {{VAULT}}/
 
    Step 1: Read the COMPLETE file.
    - PDFs: check total page count, read in 10-page chunks until all pages done.
@@ -302,12 +302,12 @@ Detect from the argument passed:
    - personal/     — goals, health, reflections, admin
    - archive/      — completed or doesn't fit elsewhere
 
-   Step 3: Write full markdown source to: c:/Users/rushi/llm-wiki-memory/<folder>/sources/<stem>.md
+   Step 3: Write full markdown source to: {{VAULT}}/<folder>/sources/<stem>.md
    The <stem> is filename without extension, spaces → underscores.
    Content must be COMPLETE — every word from original, verbatim. Not a summary.
    Use frontmatter: title, created, updated, last_verified, confidence, provenance, tags, source (original filename), type, related.
 
-   Step 4: Write summary note to: c:/Users/rushi/llm-wiki-memory/<folder>/<stem>.md
+   Step 4: Write summary note to: {{VAULT}}/<folder>/<stem>.md
    Format:
    - frontmatter (title, created, updated, last_verified, confidence, provenance, tags, type, source, related)
    - ## TL;DR — 1–2 punchy sentences: what it is, why it matters, the key insight
@@ -333,7 +333,7 @@ Detect from the argument passed:
 
 ## Inbox drops (image detection)
 
-When the user runs `/ingest` with no argument, or when an `inbox/` scan is performed as part of lint, check for image files in `c:/Users/rushi/llm-wiki-memory/inbox/`:
+When the user runs `/ingest` with no argument, or when an `inbox/` scan is performed as part of lint, check for image files in `{{VAULT}}/inbox/`:
 
 1. `Glob inbox/*.{png,jpg,jpeg,gif,svg,webp}` (case-insensitive) — list any found images.
 2. If images are found, display them separately from documents:
@@ -356,7 +356,7 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
 1. **Search existing notes** (zero token cost):
    ```
-   python C:/Users/rushi/.claude/skills/_wiki/search.py "<topic>" --top 5
+   python {{SCRIPTS}}/search.py "<topic>" --top 5
    ```
    Read the returned note files. Note what's already known (definitions, gaps, existing coverage).
    If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
@@ -460,7 +460,7 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
 1. **Search existing notes** (zero token cost):
    ```
-   python C:/Users/rushi/.claude/skills/_wiki/search.py "<topic>" --top 5
+   python {{SCRIPTS}}/search.py "<topic>" --top 5
    ```
    Read returned files → extract relevant content into "What I Already Know".
    If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
@@ -567,7 +567,7 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
 ## Learning Folder Awareness
 
-When writing a note into `learning/`, read `c:/Users/rushi/llm-wiki-memory/SCHEMA.md` and `c:/Users/rushi/llm-wiki-memory/learning/CONVENTIONS.md` before writing.
+When writing a note into `learning/`, read `{{VAULT}}/SCHEMA.md` and `{{VAULT}}/learning/CONVENTIONS.md` before writing.
 
 Apply these rules:
 
@@ -604,7 +604,7 @@ Before calling Write on any note, verify the draft contains all 7 rubric fields 
 2. **diagram missing?** → Scan for processes, pipelines, architectures, or decisions in the content. Generate the most appropriate Mermaid block type (flowchart LR for pipelines, sequenceDiagram for protocols, flowchart TD for decisions). Insert in the most relevant section.
 3. **worked-example missing?** → Generate a `> [!example]` callout with concrete numbers, real code, and real results. Pull from the source material; never invent placeholder values.
 4. **when-not-to-use missing?** → Add a `## When NOT to Use` section with 3–5 bulleted anti-patterns or scope limits derived from the content.
-5. **see-also missing?** → Run `python C:/Users/rushi/.claude/skills/_wiki/search.py "<note title and tags>" --top 8` and pick the top 3–5 most relevant results as wikilinks. If search unavailable, read `wiki/index.md` and pick manually.
+5. **see-also missing?** → Run `python {{SCRIPTS}}/search.py "<note title and tags>" --top 8` and pick the top 3–5 most relevant results as wikilinks. If search unavailable, read `wiki/index.md` and pick manually.
 6. **version-pins missing?** (only for `production.md` / `cookbook.md`) → Scan all fenced code blocks; for any missing `# tested:` comment, add `# tested: <detected-library>==<version-from-source-or-ask>` as first line.
 
 Anonymization check: scan the full draft for any employer-name tokens; replace silently with "our platform" or "our workload".
@@ -619,7 +619,7 @@ This step is mandatory after all modes.
 
 1. **Search for related pages** (zero token cost):
    ```
-   python C:/Users/rushi/.claude/skills/_wiki/search.py "<new note tags and title keywords>" --top 8
+   python {{SCRIPTS}}/search.py "<new note tags and title keywords>" --top 8
    ```
    These are the pages to cross-link against.
    If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
@@ -649,23 +649,23 @@ This step is mandatory after all modes.
 
 6. Update search indexes (all four, in order):
    ```
-   python C:/Users/rushi/.claude/skills/_wiki/build_graph.py --update <folder/slug.md>
-   python C:/Users/rushi/.claude/skills/_wiki/build_routing.py --update <folder/slug.md>
-   python C:/Users/rushi/.claude/skills/_wiki/build_index.py --update <folder/slug.md>
-   python C:/Users/rushi/.claude/skills/_wiki/build_embeddings.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_graph.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_routing.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_index.py --update <folder/slug.md>
+   python {{SCRIPTS}}/build_embeddings.py --update <folder/slug.md>
    ```
    If scripts are not found or `wiki/graph.json` does not exist, run full builds instead:
    ```
-   python C:/Users/rushi/.claude/skills/_wiki/build_graph.py
-   python C:/Users/rushi/.claude/skills/_wiki/build_routing.py
-   python C:/Users/rushi/.claude/skills/_wiki/build_index.py
-   python C:/Users/rushi/.claude/skills/_wiki/build_embeddings.py
+   python {{SCRIPTS}}/build_graph.py
+   python {{SCRIPTS}}/build_routing.py
+   python {{SCRIPTS}}/build_index.py
+   python {{SCRIPTS}}/build_embeddings.py
    ```
    For batch mode, always run full builds (not `--update`) after all notes are written.
 
 7. **Suggest related pages** (only if `wiki/embeddings.db` exists):
    ```
-   python C:/Users/rushi/.claude/skills/_wiki/search.py "<new note title and top 3 tags>" --top 8
+   python {{SCRIPTS}}/search.py "<new note title and top 3 tags>" --top 8
    ```
    From the results, exclude the newly written note itself. Compute tag Jaccard overlap between the
    new note's tags and each candidate's tags. Rank by combined score (search rank + tag overlap).

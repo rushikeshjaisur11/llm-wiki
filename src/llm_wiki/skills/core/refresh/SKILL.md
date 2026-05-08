@@ -5,7 +5,7 @@ description: Re-verify a note against its canonical source URL, diff against cur
 
 # Refresh — Re-verify a Note Against Its Source
 
-Vault root: `c:/Users/rushi/llm-wiki-memory/`
+Vault root: `{{VAULT}}/`
 
 ## Argument parsing
 
@@ -19,7 +19,7 @@ Vault root: `c:/Users/rushi/llm-wiki-memory/`
 
 ### --queue mode
 
-Run: `python C:/Users/rushi/.claude/skills/_wiki/review.py [--n=N] [--all]`
+Run: `python {{SCRIPTS}}/review.py [--n=N] [--all]`
 
 Urgency formula: `(days_since_last_verified / ttl) × confidence_weight`
 Confidence weights: `low=2.5`, `medium=1.5`, `high=1.0`. TTL rules from `SCHEMA.md`.
