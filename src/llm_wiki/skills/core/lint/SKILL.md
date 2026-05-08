@@ -1,19 +1,29 @@
 ---
 name: lint
-description: Full vault health-check — scans for file system issues (misplaced files, junk, duplicates, unprocessed inbox) and wiki knowledge issues (orphan pages, broken wikilinks, concept stubs, contradictions). Reports first, executes after confirmation. Replaces /organize-vault.
+description: Full vault health-check — scans for file system issues (misplaced files, junk, duplicates, unprocessed inbox) and wiki knowledge issues (orphan pages, broken wikilinks, concept stubs, contradictions). Add --quarterly for the full audit report (replaces /audit). Reports first, executes after confirmation.
 ---
 
 # Lint — Full Vault Health Check
 
-Vault root: `{{VAULT}}/`
+Vault root: `c:/Users/rushi/llm-wiki-memory/`
+
+## Argument parsing
+
+| Invocation | Behaviour |
+|---|---|
+| `/lint` | Standard health check — file system + wiki quality |
+| `/lint --quarterly` | Everything in standard + confidence scan + writes `wiki/audit-YYYY-Q<N>.md` instead of `wiki/lint-YYYY-MM-DD.md`. Run once per quarter. |
+
+---
 
 ## Phase 1: Scan (read-only)
 
 ### File System Health
 
 **1a. Loose root files**
-List all files at vault root other than: `CLAUDE.md`, `wiki/`
-Flag: should only contain those plus folder structure and `.obsidian/`
+List all files at vault root other than: `CLAUDE.md`, `SCHEMA.md`, `wiki/`, `learning/`, `research/`, `data-engineering/`, `projects/`, `personal/`, `archive/`, `attachments/`, `inbox/`, `daily/`.
+Flag any `.md` files at the root level — the only sanctioned root `.md` file is `CLAUDE.md`.
+Note: `wiki/memory.md` is a sanctioned file (written by `/tldr`) — do NOT flag it.
 
 **1b. Unprocessed inbox/**
 `Glob inbox/*` — list all files. PDFs/docs → `/ingest`. Already-markdown files → classify and move.
@@ -63,10 +73,48 @@ For each link:
 - Otherwise: check the target `.md` file exists. List broken ones with the file that contains them.
 Do not flag `![[attachments/...]]` image embeds as broken if the file is present in `attachments/`.
 
+**2b-triage. Dangling-link triage** (runs immediately after 2b detects broken wikilinks)
+
+For each broken wikilink `[[X]]` found in 2b, classify it into one of three buckets:
+
+**Bucket 1 — Rename (auto-fix):**
+Fuzzy-match `X` against all existing note basenames (stem only, no extension) in the vault.
+Use Levenshtein distance: if the best match has ratio ≥ 0.85, propose:
+```
+[[X]]  →  [[actual/path/best-match]]
+```
+Collect all proposed renames into a triage table.
+
+**Bucket 2 — Stub needed:**
+If `X` appears ≥3 times across different vault files AND no fuzzy match with ratio ≥0.85 exists, mark it as a stub candidate. These will be appended to `wiki/gaps.md` under `## Stub Pages (need creation)` with occurrence count:
+```
+- [ ] `[[X]]` — mentioned N times; no note exists yet
+```
+
+**Bucket 3 — Drop:**
+If `X` appears only once vault-wide and no fuzzy match exists, propose removing just the wikilink brackets (keep surrounding prose). Example: `See [[X]] for details` → `See X for details`.
+
+**Output:** Write `wiki/dangling-YYYY-MM-DD.md` with a triage table:
+```markdown
+| Wikilink | Occurrences | Bucket | Proposed action |
+|---|---|---|---|
+| [[old-note-name]] | 5 | rename | → [[learning/langgraph/renamed-note]] |
+| [[milvus-deployment]] | 7 | stub | add to gaps.md |
+| [[some-dead-link]] | 1 | drop | remove brackets |
+```
+
+**Execution (Phase 3):** On confirmation:
+1. Apply renames: use `sed`/Edit to replace `[[X]]` → `[[Y]]` in all files that contain the link.
+2. Append stub candidates to `wiki/gaps.md` under `## Stub Pages (need creation)`.
+3. Apply drops: remove brackets only, keep prose text.
+4. Log: "Dangling-link triage: N renamed, M stubs added to gaps, K dropped."
+
 **2c. Orphan pages**
-Run `obsidian backlinks` for each page (or Grep for `[[page-name]]` occurrences across vault).
-List pages with zero inbound links — they exist but nothing points to them.
-Do not include `attachments/` image files in the orphan check — they are assets, not content pages.
+For each page in `research/`, `learning/`, `data-engineering/`, `projects/`:
+- Grep the entire vault (excluding `wiki/index.md`, `wiki/routing/`, `wiki/log.md`) for `[[page-stem]]` or `[[folder/page-stem]]`
+- Flag pages with zero inbound content wikilinks as orphans
+- List up to 15 orphans with suggested cross-link targets (pages with similar tags)
+- Do not check `attachments/` — image files are assets and are intentionally not cross-linked.
 
 **2d. Concept stubs**
 Scan all pages for proper noun / concept names (capitalized or quoted terms) that appear in prose 2+ times across multiple pages but have no dedicated wiki page.
@@ -80,15 +128,9 @@ For each community in `wiki/graph/nodes/`:
 - Only read the actual note files for flagged pairs (not all members)
 Flag cases where two pages make opposing claims about the same concept (e.g. one recommends X, another recommends against X for the same use case).
 
-**2e-ext. Orphan pages**
-For each page in `research/`, `learning/`, `data-engineering/`, `projects/`:
-- Grep the entire vault (excluding `wiki/index.md`, `wiki/routing/`, `wiki/log.md`) for `[[page-stem]]` or `[[folder/page-stem]]`
-- Flag pages with zero inbound content wikilinks as orphans
-- List up to 15 orphans with suggested cross-link targets (pages with similar tags)
-- Do not check `attachments/` — image files are assets and are intentionally not cross-linked.
 
 **2e-ext2. Staleness scan (LLM Wiki v2)**
-Read TTL rules from `{{VAULT}}/SCHEMA.md` (TTL Rules table).
+Read TTL rules from `c:/Users/rushi/llm-wiki-memory/SCHEMA.md` (TTL Rules table).
 For each `.md` file in `learning/`, `research/`, `wiki/`:
 - Read frontmatter `last_verified` field (fall back to `updated`, then `created`)
 - Determine topic class from `tags` to get TTL
@@ -109,7 +151,7 @@ For each page, flag:
 - Missing `last_verified` field (new requirement — default to `created` date)
 - Missing `confidence` field (new requirement)
 - Missing `provenance` field (new requirement)
-Summarise as: "N pages need frontmatter migration" with a suggestion to run `python {{SCRIPTS}}/migrate_frontmatter.py --write`
+Summarise as: "N pages need frontmatter migration" with a suggestion to run `python C:/Users/rushi/.claude/skills/_wiki/migrate_frontmatter.py --write`
 
 **2e-ext4. Version-pin scan**
 In `learning/*/production.md` and `learning/*/cookbook.md` files:
@@ -117,14 +159,39 @@ In `learning/*/production.md` and `learning/*/cookbook.md` files:
 - List unpinned blocks as: file | block line number | suggested pin format
 This helps catch snippets that may become stale without a version marker.
 
-**2e-ext5. Learning folder structure check**
-Read `{{VAULT}}/learning/CONVENTIONS.md` for the three-tier policy.
+**2e-ext5. v2 Quality Score (lint.py)**
+Run `python C:/Users/rushi/.claude/skills/_wiki/lint.py` to produce a per-folder quality leaderboard.
+Scores each note 0-7 against: frontmatter completeness, TL;DR callout, mental-model diagram, worked example, "When NOT to use", footer See Also, version pins (prod/cookbook).
+Output is written to `wiki/lint-YYYY-MM-DD.md`. Report the per-folder average and worst-5 notes per folder in the Phase 2 report. Do NOT open the raw output file — just run the script and read the first 80 lines.
+
+**2e-ext6. Learning folder structure check**
+Read `c:/Users/rushi/llm-wiki-memory/learning/CONVENTIONS.md` for the three-tier policy.
 For each runtime-tier folder (langgraph, langchain, google-adk, rag, fastapi, vector-db, llm-infra, agents):
 - Check presence of: `index.md`, `production.md`, `cookbook.md`
 - Report missing required files: "langgraph is missing: production.md, cookbook.md"
 For each folder in `learning/`:
 - Check that `index.md` exists; flag missing ones
 - Check that no file is named `00-*.md` or uses Title-Case (except inside course subfolders with numbered notes)
+
+**2e-ext7. Cluster integrity check**
+For Obsidian graph clustering: each leaf note should link back to its folder hub, and each hub should list all its leaves.
+
+For each leaf note in `learning/<topic>/*.md` (excluding `index.md`, `production.md`, `cookbook.md`):
+- Check for presence of `**Up:** [[learning/<topic>/index]]` line in the note body
+- Flag leaves missing this Up-link
+
+For each folder with an `index.md` in `learning/`:
+- List all `.md` files in that folder (and immediate subfolders for multi-level courses)
+- Check that each leaf is linked from `index.md`
+- Flag leaves not listed in their hub
+
+Report format:
+```
+Cluster integrity issues:
+- Leaves missing Up-link: N (list paths)
+- Leaves not in hub index: N (list paths + which hub)
+```
+
 
 **2f. Actionable next research**
 From `## Open Questions` sections across all pages + concept stubs + gaps, produce 3–5 specific research topics with actionable web search queries:
@@ -152,6 +219,7 @@ Show the consolidated report before touching anything:
 ### Wiki Health
 **Not in index (N pages):** [list]
 **Broken wikilinks (N):** [[link]] in file.md
+**Dangling-link triage:** N renames proposed, M stubs to add to gaps, K drops proposed → see `wiki/dangling-YYYY-MM-DD.md`
 **Orphan pages (N):** [list with suggested cross-link targets]
 **Stale notes (N overdue by TTL class):** [table: note | last_verified | TTL | days overdue]
 **Missing frontmatter fields (N pages):** [summary + migration command if applicable]
@@ -259,3 +327,61 @@ Identified by `/lint` on YYYY-MM-DD. Work through these with `/ingest <topic>`.
 - Log: "Created new gaps.md with N items"
 
 If no new gaps were found: do not create `wiki/gaps.md`. Log: "No new gaps identified".
+
+---
+
+## Quarterly Mode (--quarterly flag only)
+
+Run these extra steps after Phase 1-3, then write `wiki/audit-YYYY-Q<N>.md` instead of `wiki/lint-YYYY-MM-DD.md`.
+
+**Q1. Determine quarter**
+Label the report `YYYY-Q<N>` from today's date. Check if `wiki/audit-YYYY-Q<N>.md` already exists → ask "overwrite or append?"
+
+**Q2. Confidence scan**
+Count notes in `learning/` and `research/` by `confidence:` value:
+- `high` / `medium` / `low` / missing field
+List all `confidence: low` notes — these are the highest-risk knowledge.
+
+**Q3. Write quarterly report** to `wiki/audit-YYYY-Q<N>.md`:
+
+```markdown
+---
+title: Vault Audit — YYYY-Q<N>
+created: <TODAY>
+updated: <TODAY>
+type: meta
+---
+
+# Vault Audit — YYYY-Q<N>
+
+## Summary
+- Total notes: N | Overdue: N (X%) | Low/missing confidence: N
+- Contradictions: N | Orphans: N | Dangling links: N
+
+## Priority Actions
+1. /refresh the N most overdue: [[note1]], [[note2]]
+2. Backfill confidence on N notes
+3. Resolve contradictions: ...
+
+## Staleness Detail
+[from 2e-ext2]
+
+## Confidence Distribution
+[from Q2]
+
+## Contradictions
+[from 2e]
+
+## Orphans & Dangling Links
+[from 2c + 2b-triage]
+
+## Learning Folder Gaps
+[from 2e-ext6]
+```
+
+**Q4. Log entry:**
+```
+## [DATE] audit | Quarterly vault health — YYYY-Q<N>
+- Report: [[wiki/audit-YYYY-Q<N>]]
+- Overdue: N | Low confidence: N | Contradictions: N | Orphans: N
+```

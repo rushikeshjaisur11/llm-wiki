@@ -5,14 +5,14 @@ description: Add any source to the wiki — URL, file, batch folder, research to
 
 # Ingest — Add to Wiki
 
-Vault root: `{{VAULT}}/`
+Vault root: `c:/Users/rushi/llm-wiki-memory/`
 
 ## Vault Tool Detection (run before every ingest)
 
 Before writing any note, detect the user's vault tool by reading the `vault-tool:` line from the vault's CLAUDE.md:
 
 ```
-Read: {{VAULT}}/CLAUDE.md
+Read: c:/Users/rushi/llm-wiki-memory/CLAUDE.md
 Look for line: vault-tool: <value>
 ```
 
@@ -24,90 +24,23 @@ Apply the formatting rules for that tool throughout the note. If the line is mis
 
 ## Note Quality Standards
 
-Every note written by this skill — regardless of mode — must follow these standards. They are non-negotiable. The **implementation** of each standard varies by vault tool (see table below); the **intent** does not.
+Every note must score 7/7 on the Quality Rubric v2 (canonical in `CLAUDE.md` § Note-Writing Checklist). Apply these rendering rules based on vault tool:
 
-### Feature Support by Vault Tool
+| Feature | Obsidian | Foam | Logseq | Plain MD |
+|---|---|---|---|---|
+| Mermaid | ✅ native | ✅ (extension) | ✅ native | ❌ use ASCII table |
+| Callouts `> [!x]` | ✅ native | ❌ use bold blockquote | ❌ use bold blockquote | ❌ use bold blockquote |
+| Wikilinks `[[...]]` | ✅ native | ✅ (Foam ext) | ✅ native | ❌ use relative links |
 
-| Feature | Obsidian | VS Code + Foam | Logseq | Plain Markdown |
-|---------|----------|---------------|--------|----------------|
-| Mermaid diagrams | ✅ Native | ✅ with Markdown Preview Mermaid extension | ✅ Native | ❌ Renders as code block — use ASCII/table instead |
-| Callouts `> [!tip]` | ✅ Native | ❌ Renders as plain blockquote | ❌ Renders as plain blockquote | ❌ Renders as plain blockquote |
-| Wikilinks `[[...]]` | ✅ Native | ✅ with Foam extension | ✅ Native | ❌ Use relative markdown links |
-| `---` separators | ✅ | ✅ | ✅ | ✅ |
-| Tables | ✅ | ✅ | ✅ | ✅ |
-| Fenced code blocks | ✅ | ✅ | ✅ | ✅ |
+**Mermaid type selection:** pipeline/flow → `flowchart LR` · decision → `flowchart TD` · protocol/message → `sequenceDiagram` · benchmarks → `xychart-beta`
 
-### 1. Diagrams — Show Flows Visually
+**Node colors:** `fill:#27ae60` green=recommended · `fill:#e74c3c` red=error · `fill:#f39c12` orange=warning · `fill:#3498db` blue=info
 
-Whenever content involves a process, pipeline, architecture, decision, timeline, or numeric comparison, add a visual. **Never replace a diagram with a prose paragraph.**
+**Callouts (Obsidian):** `> [!tldr]` summary · `> [!example]` worked example · `> [!tip]` best practice · `> [!warning]` pitfall
 
-**Obsidian / Logseq / Foam:**
-Use Mermaid fenced code blocks. Choose the right diagram type:
-- Multi-step process or pipeline → ` ```mermaid flowchart LR` or `flowchart TD`
-- Decision / "when to use X vs Y" → `flowchart TD` decision tree
-- Timeline or trigger cadence → `gantt`
-- Message sequence between systems → `sequenceDiagram`
-- Numeric distribution (durations, throughput, skew) → `xychart-beta`
-- Architecture with components and data flows → `flowchart LR` with subgraphs
+**Examples must be concrete:** real numbers (GB/TB, ms, row counts), real function names, no `<placeholder>` or `TODO`.
 
-Color-code nodes by severity/category:
-- `style NodeName fill:#e74c3c,color:#fff` — red = critical / error
-- `style NodeName fill:#f39c12,color:#fff` — orange = warning
-- `style NodeName fill:#27ae60,color:#fff` — green = good / recommended
-- `style NodeName fill:#3498db,color:#fff` — blue = informational
-
-**Plain Markdown (fallback):**
-Use ASCII art or a structured table to represent the flow. Example:
-```
-Source → [Parse] → [Enrich] → Sink
-                       ↓
-                   [Dead Letter]
-```
-Or use a table with columns like: Step | Input | Output | Notes.
-
-### 2. Highlighted Insights — Surface What Matters
-
-Use visually distinct blocks to mark the most important content so a reader skimming the note can't miss it.
-
-**Obsidian** — use native callouts:
-| Callout | When to use |
-|---------|------------|
-| `> [!tip]` | Non-obvious best practice or rule of thumb |
-| `> [!warning]` | Common pitfall, deprecated behavior, or data-loss risk |
-| `> [!note]` | Clarification or constraint that qualifies a statement |
-| `> [!example]` | Worked example with real numbers, concrete inputs/outputs |
-
-**Foam / Logseq / Plain Markdown** — use bold-prefixed blockquotes:
-```markdown
-> **Tip:** Non-obvious best practice text here.
-
-> **Warning:** Common pitfall or data-loss risk here.
-
-> **Example:** Concrete worked example with real numbers here.
-```
-
-Every note must have at least one highlighted **Example** block with a concrete worked example (real numbers, real code, real results — never `<placeholder>` or `TODO`).
-
-### 3. Concrete Examples with Numbers
-
-Every abstract concept must be grounded with a concrete example immediately following it. Rules:
-- Use realistic numbers: dataset sizes in GB/TB, latency in ms, row counts in millions
-- Show before/after: what the problem looks like, what the fix produces
-- Code examples must be runnable: real function names, real config keys, real values
-- Never use `<placeholder>`, `<your-value>`, or `TODO` in code examples
-
-### 4. Comparison Tables
-
-Whenever two or more options, strategies, or tools are compared, use a markdown table. Always include a "When to Use" or "Tradeoff" column. Decision trees (Mermaid flowchart for Obsidian/Logseq/Foam; ASCII for markdown) are preferred when the choice is conditional.
-
-### 5. Section Separators
-
-Use `---` between every major H2 section regardless of vault tool. Improves readability in all renderers.
-
-### 6. Wikilinks
-
-**Obsidian / Foam / Logseq:** Use `[[folder/slug]]` wikilink format.  
-**Plain Markdown:** Use standard relative links: `[Note Title](../folder/slug.md)`.
+**Separators:** `---` between every H2. **Wikilinks:** `[[folder/slug]]` format.
 
 ---
 
@@ -170,7 +103,11 @@ Detect from the argument passed:
    ```markdown
    ---
    title: <Title>
-   date: <TODAY>
+   created: <TODAY>
+   updated: <TODAY>
+   last_verified: <TODAY>
+   confidence: medium
+   provenance: extracted
    tags: [<topic-tags>, video]
    type: <research | learning | data-engineering>
    source: "<youtube_url>"
@@ -182,6 +119,8 @@ Detect from the argument passed:
    ---
 
    # <Title>
+
+   > **Up:** [[<folder>/index]]
 
    > **Channel:** <Channel> | **Published:** <date> | **Duration:** <duration>
    > **Watch:** <youtube_url>
@@ -267,8 +206,8 @@ Detect from the argument passed:
    - For warnings or gotchas → use `> [!warning]` or `> [!tip]` callouts
 5. **Image handling**: After defuddle returns markdown, scan the content for `![alt](http...)` remote image references (supported extensions: `.png .jpg .jpeg .gif .svg .webp`):
    - For each remote image URL, derive a local filename: `<note-slug>-<n>.<ext>` (n = 1, 2, …)
-   - Ensure `{{VAULT}}/attachments/` exists (create with Bash `mkdir -p` if not)
-   - Download: `curl -L --max-filesize 5242880 -o "{{VAULT}}/attachments/<filename>" "<url>"`
+   - Ensure `c:/Users/rushi/llm-wiki-memory/attachments/` exists (create with Bash `mkdir -p` if not)
+   - Download: `curl -L --max-filesize 5242880 -o "c:/Users/rushi/llm-wiki-memory/attachments/<filename>" "<url>"`
    - If download succeeds: replace the `![alt](url)` reference in the note with `![[attachments/<filename>]]`
    - If download fails or file > 5 MB: leave the original remote URL embed in place unchanged
    - Only process extensions in the supported list; skip `.gif` if it exceeds 2 MB
@@ -282,12 +221,16 @@ Detect from the argument passed:
 1. Read the image visually
 2. Ask: "What is this diagram/image about? (One line caption)" — use this as the note title
 3. Classify to vault folder (same rules as URL mode)
-4. Copy the image to `attachments/`: run `cp "<source>" "{{VAULT}}/attachments/<slug>.<ext>"` via Bash
+4. Copy the image to `attachments/`: run `cp "<source>" "c:/Users/rushi/llm-wiki-memory/attachments/<slug>.<ext>"` via Bash
 5. Write `<folder>/<slug>.md`:
    ```markdown
    ---
    title: <Caption>
-   date: <TODAY>
+   created: <TODAY>
+   updated: <TODAY>
+   last_verified: <TODAY>
+   confidence: medium
+   provenance: extracted
    tags: [<topic-tags>, diagram]
    type: <research | learning | data-engineering>
    source: "<original filename>"
@@ -295,6 +238,8 @@ Detect from the argument passed:
    ---
 
    # <Caption>
+
+   > **Up:** [[<folder>/index]]
 
    ![[attachments/<slug>.<ext>]]
 
@@ -342,7 +287,7 @@ Detect from the argument passed:
    Subagent prompt template (fill in placeholders):
    ```
    Process a single file for an Obsidian vault.
-   File: <ABSOLUTE_PATH> | Date: <TODAY> | Vault root: {{VAULT}}/
+   File: <ABSOLUTE_PATH> | Date: <TODAY> | Vault root: c:/Users/rushi/llm-wiki-memory/
 
    Step 1: Read the COMPLETE file.
    - PDFs: check total page count, read in 10-page chunks until all pages done.
@@ -357,14 +302,14 @@ Detect from the argument passed:
    - personal/     — goals, health, reflections, admin
    - archive/      — completed or doesn't fit elsewhere
 
-   Step 3: Write full markdown source to: {{VAULT}}/<folder>/sources/<stem>.md
+   Step 3: Write full markdown source to: c:/Users/rushi/llm-wiki-memory/<folder>/sources/<stem>.md
    The <stem> is filename without extension, spaces → underscores.
    Content must be COMPLETE — every word from original, verbatim. Not a summary.
-   Use frontmatter: title, date, tags, source (original filename), type.
+   Use frontmatter: title, created, updated, last_verified, confidence, provenance, tags, source (original filename), type, related.
 
-   Step 4: Write summary note to: {{VAULT}}/<folder>/<stem>.md
+   Step 4: Write summary note to: c:/Users/rushi/llm-wiki-memory/<folder>/<stem>.md
    Format:
-   - frontmatter (title, date, tags, type, source, related)
+   - frontmatter (title, created, updated, last_verified, confidence, provenance, tags, type, source, related)
    - ## TL;DR — 1–2 punchy sentences: what it is, why it matters, the key insight
    - ## Key Points — 5–8 bullets, concrete and specific (real numbers, real names, not vague summaries)
    - ## How It Works — include at least one Mermaid diagram (flowchart or sequenceDiagram) if the source explains a process, architecture, or flow
@@ -388,7 +333,7 @@ Detect from the argument passed:
 
 ## Inbox drops (image detection)
 
-When the user runs `/ingest` with no argument, or when an `inbox/` scan is performed as part of lint, check for image files in `{{VAULT}}/inbox/`:
+When the user runs `/ingest` with no argument, or when an `inbox/` scan is performed as part of lint, check for image files in `c:/Users/rushi/llm-wiki-memory/inbox/`:
 
 1. `Glob inbox/*.{png,jpg,jpeg,gif,svg,webp}` (case-insensitive) — list any found images.
 2. If images are found, display them separately from documents:
@@ -411,7 +356,7 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
 1. **Search existing notes** (zero token cost):
    ```
-   python {{SCRIPTS}}/search.py "<topic>" --top 5
+   python C:/Users/rushi/.claude/skills/_wiki/search.py "<topic>" --top 5
    ```
    Read the returned note files. Note what's already known (definitions, gaps, existing coverage).
    If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
@@ -422,14 +367,21 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
    ```markdown
    ---
    title: <Topic>
-   date: <TODAY>
+   created: <TODAY>
+   updated: <TODAY>
+   last_verified: <TODAY>
+   confidence: medium
+   provenance: inferred
    tags: [<topic-tags>]
    type: research
+   source: <primary source URL or "web-search">
    source-count: <N sources used>
    related: []
    ---
 
    # <Topic>
+
+   > **Up:** [[research/index]]
 
    ## TL;DR
    <!-- 1–2 punchy sentences: what this is, why it matters, the key insight -->
@@ -508,7 +460,7 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
 1. **Search existing notes** (zero token cost):
    ```
-   python {{SCRIPTS}}/search.py "<topic>" --top 5
+   python C:/Users/rushi/.claude/skills/_wiki/search.py "<topic>" --top 5
    ```
    Read returned files → extract relevant content into "What I Already Know".
    If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
@@ -517,14 +469,20 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
    ```markdown
    ---
    title: <Topic>
-   date: <TODAY>
+   created: <TODAY>
+   updated: <TODAY>
+   last_verified: <TODAY>
+   confidence: low
+   provenance: inferred
    tags: [<topic-tags>]
    type: learning
-   status: in-progress
+   source: derived
    related: []
    ---
 
    # <Topic>
+
+   > **Up:** [[learning/<topic-folder>/index]]
 
    ## TL;DR
    <!-- 1–2 punchy sentences: what this is, why it matters, and the key insight to hold onto -->
@@ -609,7 +567,7 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
 
 ## Learning Folder Awareness
 
-When writing a note into `learning/`, read `{{VAULT}}/SCHEMA.md` and `{{VAULT}}/learning/CONVENTIONS.md` before writing.
+When writing a note into `learning/`, read `c:/Users/rushi/llm-wiki-memory/SCHEMA.md` and `c:/Users/rushi/llm-wiki-memory/learning/CONVENTIONS.md` before writing.
 
 Apply these rules:
 
@@ -623,11 +581,7 @@ Apply these rules:
    contradicts: []
    ```
 
-2. **Determine topic class from tags → set TTL** (for context when proposing last_verified):
-   - Framework APIs (langgraph, langchain, google-adk, fastapi): TTL = 90 days
-   - Cloud services (gcp, aws, vertexai): TTL = 90 days
-   - Architecture concepts: TTL = 180 days
-   - Foundations (dsa, sql, ml theory): TTL = 365 days
+2. **Determine topic class from tags → set TTL:** Read from `SCHEMA.md` § TTL Rules.
 
 3. **Folder triad prompt**: For notes going into a runtime folder (langgraph, langchain, rag, fastapi, vector-db, llm-infra, agents), ask:
    > "Is this content for a concept note, or does it belong in `production.md`, `cookbook.md`, `troubleshooting.md`, or `changelog.md`?"
@@ -638,7 +592,24 @@ Apply these rules:
    - Add `contradicts: [[new-note]]` to the existing note's frontmatter
    - Add a `> [!warning] Contradiction` callout in the new note pointing to the conflict
 
-5. **Anonymization**: Apply the employer anonymization rule from `CLAUDE.md` — replace employer name with "our platform" / "our workload".
+5. **Anonymization**: Apply the employer anonymization rule from `CLAUDE.md` — replace employer name with "our platform" / "our workload". This applies to ALL modes (URL, file, batch, research, study) — not only learning/ notes.
+
+---
+
+## Pre-Write Quality Check (runs before writing every note)
+
+Before calling Write on any note, verify the draft contains all 7 rubric fields (see SCHEMA.md Quality Rubric v2). For each missing field, generate it inline before writing:
+
+1. **tldr-callout missing?** → Read the note body; generate a `> [!tldr]` Obsidian callout (≤3 lines) summarising what the note is, why it matters, and the key insight. Insert immediately after the H1 title.
+2. **diagram missing?** → Scan for processes, pipelines, architectures, or decisions in the content. Generate the most appropriate Mermaid block type (flowchart LR for pipelines, sequenceDiagram for protocols, flowchart TD for decisions). Insert in the most relevant section.
+3. **worked-example missing?** → Generate a `> [!example]` callout with concrete numbers, real code, and real results. Pull from the source material; never invent placeholder values.
+4. **when-not-to-use missing?** → Add a `## When NOT to Use` section with 3–5 bulleted anti-patterns or scope limits derived from the content.
+5. **see-also missing?** → Run `python C:/Users/rushi/.claude/skills/_wiki/search.py "<note title and tags>" --top 8` and pick the top 3–5 most relevant results as wikilinks. If search unavailable, read `wiki/index.md` and pick manually.
+6. **version-pins missing?** (only for `production.md` / `cookbook.md`) → Scan all fenced code blocks; for any missing `# tested:` comment, add `# tested: <detected-library>==<version-from-source-or-ask>` as first line.
+
+Anonymization check: scan the full draft for any employer-name tokens; replace silently with "our platform" or "our workload".
+
+This check is mandatory for all modes. A note that scores <6/7 must not be written until the missing fields are generated.
 
 ---
 
@@ -648,7 +619,7 @@ This step is mandatory after all modes.
 
 1. **Search for related pages** (zero token cost):
    ```
-   python {{SCRIPTS}}/search.py "<new note tags and title keywords>" --top 8
+   python C:/Users/rushi/.claude/skills/_wiki/search.py "<new note tags and title keywords>" --top 8
    ```
    These are the pages to cross-link against.
    If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
@@ -659,7 +630,15 @@ This step is mandatory after all modes.
    ```
    - [[folder/slug]] — one-line summary (YYYY-MM-DD)
    ```
-4. Append to `wiki/log.md`:
+4. **Cluster maintenance** (for notes written to `learning/`):
+   - Confirm the note has `> **Up:** [[learning/<tech>/index]]` in the body. Add it if missing.
+   - Open `learning/<tech>/index.md` and verify the new note appears in the notes list. If missing, add a line:
+     ```
+     - **[[learning/<tech>/<slug>]]** — <one-line description>
+     ```
+   - Bump `updated:` in the hub's frontmatter to today.
+
+5. Append to `wiki/log.md`:
    ```
    ## [DATE] ingest | <Title>
    - Note: [[folder/slug]]
@@ -668,25 +647,25 @@ This step is mandatory after all modes.
    - Skills_touched: [ingest]
    ```
 
-5. Update search indexes (all four, in order):
+6. Update search indexes (all four, in order):
    ```
-   python {{SCRIPTS}}/build_graph.py --update <folder/slug.md>
-   python {{SCRIPTS}}/build_routing.py --update <folder/slug.md>
-   python {{SCRIPTS}}/build_index.py --update <folder/slug.md>
-   python {{SCRIPTS}}/build_embeddings.py --update <folder/slug.md>
+   python C:/Users/rushi/.claude/skills/_wiki/build_graph.py --update <folder/slug.md>
+   python C:/Users/rushi/.claude/skills/_wiki/build_routing.py --update <folder/slug.md>
+   python C:/Users/rushi/.claude/skills/_wiki/build_index.py --update <folder/slug.md>
+   python C:/Users/rushi/.claude/skills/_wiki/build_embeddings.py --update <folder/slug.md>
    ```
    If scripts are not found or `wiki/graph.json` does not exist, run full builds instead:
    ```
-   python {{SCRIPTS}}/build_graph.py
-   python {{SCRIPTS}}/build_routing.py
-   python {{SCRIPTS}}/build_index.py
-   python {{SCRIPTS}}/build_embeddings.py
+   python C:/Users/rushi/.claude/skills/_wiki/build_graph.py
+   python C:/Users/rushi/.claude/skills/_wiki/build_routing.py
+   python C:/Users/rushi/.claude/skills/_wiki/build_index.py
+   python C:/Users/rushi/.claude/skills/_wiki/build_embeddings.py
    ```
    For batch mode, always run full builds (not `--update`) after all notes are written.
 
-6. **Suggest related pages** (only if `wiki/embeddings.db` exists):
+7. **Suggest related pages** (only if `wiki/embeddings.db` exists):
    ```
-   python {{SCRIPTS}}/search.py "<new note title and top 3 tags>" --top 8
+   python C:/Users/rushi/.claude/skills/_wiki/search.py "<new note title and top 3 tags>" --top 8
    ```
    From the results, exclude the newly written note itself. Compute tag Jaccard overlap between the
    new note's tags and each candidate's tags. Rank by combined score (search rank + tag overlap).

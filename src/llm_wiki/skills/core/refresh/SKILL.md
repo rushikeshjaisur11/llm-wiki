@@ -1,16 +1,42 @@
 ---
 name: refresh
-description: Re-verify a note against its canonical source URL, diff against current claims, propose updates, and bump last_verified. Usage - /refresh <note-path> or /refresh (prompts for note). Closes the staleness loop without deleting the original.
+description: Re-verify a note against its canonical source URL, diff against current claims, propose updates, and bump last_verified. Use --queue [N] to surface the N most overdue notes (replaces /review). Usage - /refresh <note-path> | /refresh --queue [N]
 ---
 
 # Refresh — Re-verify a Note Against Its Source
 
-Vault root: `{{VAULT}}/`
+Vault root: `c:/Users/rushi/llm-wiki-memory/`
+
+## Argument parsing
+
+| Invocation | Behaviour |
+|---|---|
+| `/refresh <note-path>` | Re-verify a specific note |
+| `/refresh` | Ask which note to re-verify |
+| `/refresh --queue` | Show top 5 overdue notes by urgency, pick one to refresh |
+| `/refresh --queue 10` | Show top N overdue notes |
+| `/refresh --queue all` | Show all overdue notes |
+
+### --queue mode
+
+Run: `python C:/Users/rushi/.claude/skills/_wiki/review.py [--n=N] [--all]`
+
+Urgency formula: `(days_since_last_verified / ttl) × confidence_weight`
+Confidence weights: `low=2.5`, `medium=1.5`, `high=1.0`. TTL rules from `SCHEMA.md`.
+
+Display the queue. For each note, offer:
+- Enter number to `/refresh` it (runs Steps 1–5 below)
+- `s` to skip to next session
+- `t` to mark reviewed today (bumps `last_verified` without re-fetching source)
+
+After the session, append one log entry to `wiki/log.md` listing all notes touched.
+
+---
 
 ## Step 1: Identify the note
 
 If the argument is a file path, read that note.
-If no argument, ask: "Which note do you want to re-verify? (e.g. `learning/langgraph/state-and-reducers`)"
+If no argument (and not `--queue`), ask: "Which note do you want to re-verify? (e.g. `learning/langgraph/state-and-reducers`)"
 
 Read the note fully and extract:
 - `source:` URL from frontmatter
