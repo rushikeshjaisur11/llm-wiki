@@ -43,6 +43,8 @@ The JSON output has three tiers:
 
 Each entry: `id`, `title`, `summary`, `tags`, `reading_time` (minutes).
 
+**Prerequisite-aware ordering:** Within each tier, notes are topologically sorted by their `prerequisites:` frontmatter field. If note B declares `prerequisites: ['[[A]]']`, A always appears before B. This happens automatically in `learningpath.py` — no manual intervention needed. The `prerequisites:` field accrues organically; no backfill is required.
+
 ---
 
 ## Step 3: Present the learning path

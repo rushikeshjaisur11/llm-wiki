@@ -571,11 +571,12 @@ When writing a note into `learning/`, read `{{VAULT}}/SCHEMA.md` and `{{VAULT}}/
 
 Apply these rules:
 
-1. **Frontmatter must include the extended LLM Wiki v2 fields:**
+1. **Frontmatter must include the extended LLM Wiki v2 + v3 fields:**
    ```yaml
    last_verified: <TODAY>          # always set to today when creating
    confidence: high | medium | low  # high = verified against source; medium = mostly verified; low = from memory
    provenance: extracted | inferred | ambiguous
+   maturity: seedling              # always seedling on first ingest; /uplift promotes to budding/evergreen
    verified_against_version: "<lib>==<version>"   # omit if not a library note
    superseded_by: null
    contradicts: []
@@ -598,7 +599,9 @@ Apply these rules:
 
 ## Pre-Write Quality Check (runs before writing every note)
 
-Before calling Write on any note, verify the draft contains all 7 rubric fields (see SCHEMA.md Quality Rubric v2). For each missing field, generate it inline before writing:
+Before calling Write on any note, verify the draft contains all 7 flat rubric fields (SCHEMA.md Quality Rubric v2) **plus** typed-rubric fields U4 and U7. For each missing field, generate it inline before writing:
+
+0. **Title not declarative (U1 check)?** → Verify `title:` contains `:` OR a verb (uses, enables, defines, is, are, allows, works, handles, implements, compares, controls…). If it is just a noun phrase (e.g., "Kafka Producers", "Speculative Decoding", "LangGraph State & Reducers"), rewrite it as `Topic: Specific Claim or Key Components`. Em-dash `—` and ampersand `&` do NOT satisfy U1. Run this check first — it costs nothing.
 
 1. **tldr-callout missing?** → Read the note body; generate a `> [!tldr]` Obsidian callout (≤3 lines) summarising what the note is, why it matters, and the key insight. Insert immediately after the H1 title.
 2. **diagram missing?** → Scan for processes, pipelines, architectures, or decisions in the content. Generate the most appropriate Mermaid block type (flowchart LR for pipelines, sequenceDiagram for protocols, flowchart TD for decisions). Insert in the most relevant section.
@@ -606,10 +609,28 @@ Before calling Write on any note, verify the draft contains all 7 rubric fields 
 4. **when-not-to-use missing?** → Add a `## When NOT to Use` section with 3–5 bulleted anti-patterns or scope limits derived from the content.
 5. **see-also missing?** → Run `python {{SCRIPTS}}/search.py "<note title and tags>" --top 8` and pick the top 3–5 most relevant results as wikilinks. If search unavailable, read `wiki/index.md` and pick manually.
 6. **version-pins missing?** (only for `production.md` / `cookbook.md`) → Scan all fenced code blocks; for any missing `# tested:` comment, add `# tested: <detected-library>==<version-from-source-or-ask>` as first line.
+7. **retrieval-prompts missing?** (skip for `type: index`, `type: reference`, `type: meta`) →
+   - Read the note body; identify the top 2 most retrievable facts: key thresholds/numbers, API decision criteria, failure modes.
+   - Generate a `## Recall prompts` section with 2 `[!question]` + `[!answer]-` pairs. Place before `## See Also`.
+   - Format:
+     ```markdown
+     ## Recall prompts
+
+     > [!question] <specific fact or decision from this note>
+     > [!answer]- <concrete answer — number, API name, failure mode>
+
+     > [!question] When would you NOT use <X covered in this note>?
+     > [!answer]- <specific anti-pattern with concrete triggering condition>
+     ```
+   - Quality bar: each answer must be a concrete fact, not a restatement. "Use partition pruning when predicates match the partition column exactly" ✓. "Use it when appropriate" ✗.
+8. **maturity missing?** → Infer and set `maturity:` in frontmatter:
+   - New notes always start as `seedling` (content has not yet been verified by re-reading).
+   - Exception: if this is an `/ingest` from an official source URL (provenance: extracted) AND all 7 flat fields + recall prompts are present → set `budding`.
+   - Never set `evergreen` on first ingest — that requires TTL-within-date verification via `/refresh`.
 
 Anonymization check: scan the full draft for any employer-name tokens; replace silently with "our platform" or "our workload".
 
-This check is mandatory for all modes. A note that scores <6/7 must not be written until the missing fields are generated.
+This check is mandatory for all modes. A note that scores <7/7 flat AND is missing U4 or U7 must not be written until the missing fields are generated.
 
 ---
 

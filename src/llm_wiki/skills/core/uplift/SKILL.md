@@ -1,12 +1,12 @@
 ---
 name: uplift
-description: Bulk-fix low-scoring vault notes. Generates missing quality-rubric fields (tldr-callout, diagram, worked-example, when-not-to-use, see-also, version-pins) using langchain/langgraph notes as gold templates. Raises every folder to ≥6/7 average score.
+description: Bulk-fix low-scoring vault notes. Generates missing quality-rubric fields (tldr-callout, diagram, worked-example, when-not-to-use, see-also, version-pins, retrieval-prompts) using langchain/langgraph notes as gold templates. Promotes maturity tag. Raises every folder to ≥6/7 average score.
 ---
 
 # Uplift — Bulk Note Quality Fix
 
 Vault root: `{{VAULT}}/`
-Quality rubric canonical source: `{{VAULT}}/SCHEMA.md` § Quality Rubric v2
+Quality rubric canonical source: `{{VAULT}}/SCHEMA.md` § Typed Rubric v3
 Gold-standard templates: `learning/langgraph/index.md`, `learning/langchain/01-*.md`, `learning/google-adk/index.md` (all 7/7)
 
 ---
@@ -15,29 +15,39 @@ Gold-standard templates: `learning/langgraph/index.md`, `learning/langchain/01-*
 
 | Argument | Behaviour |
 |---|---|
-| `/uplift <folder>` | Process all notes in `learning/<folder>/` (or `data-engineering/<folder>/`) that score <7 |
+| `/uplift <folder>` | Process all notes in `learning/<folder>/` (or `data-engineering/<folder>/`) that score <7 on flat v2 OR are missing U4/U7 |
 | `/uplift <note-path>` | Process a single note at `<note-path>` |
-| `/uplift --worst N` | Identify the N lowest-scoring notes vault-wide and process them |
+| `/uplift --worst N` | Identify the N lowest-scoring notes vault-wide (flat v2) and process them |
+| `/uplift --worst-typed N` | Identify the N notes most deficient on typed rubric (missing U4 first, then U7) and process them. Run this for the bulk recall-prompt + maturity backfill campaign. |
 | `/uplift` (no arg) | Ask: "Uplift a specific folder, a single note, or the N worst notes?" |
 
 ---
 
 ## Step 1: Determine work queue
 
-1. Find the latest lint report: `Glob wiki/lint-*.md` → sort by name descending → read the first result.
-2. Check the date in the filename. If older than 1 day, say:
+1. Find the latest lint reports:
+   - Flat: `Glob wiki/lint-[0-9]*.md` → sort descending → read first result.
+   - Typed: `Glob wiki/lint-typed-*.md` → sort descending → read first result (may not exist yet).
+2. Check report dates. If flat report is older than 1 day, say:
    > "The latest lint report is from `<date>`. Running a fresh lint scan before uplifting…"
-   Then execute **only** the lint scan phase of `/lint` (Phase 1 + Phase 2 quality checks — no file system changes). This produces an updated `wiki/lint-<TODAY>.md`.
-3. Parse the lint report for the target scope:
-   - For `/uplift <folder>`: extract all notes in that folder with score < 7
-   - For `/uplift <note-path>`: read the specific note entry
-   - For `/uplift --worst N`: take the N lowest-scoring notes across all folders
+   Run: `python {{SCRIPTS}}/lint.py --typed`
+   This produces both `wiki/lint-<TODAY>.md` and `wiki/lint-typed-<TODAY>.md`.
+3. Parse the report(s) for the target scope:
+   - For `/uplift <folder>`: extract notes in that folder with flat score < 7 **OR** missing U4/U7 per the typed report.
+   - For `/uplift <note-path>`: read the specific note.
+   - For `/uplift --worst N`: take the N lowest flat-score notes.
+   - For `/uplift --worst-typed N`: take the N notes most deficient on typed rubric — sort by:
+     1. Missing U4 (recall prompts) — highest priority
+     2. Missing U7 (maturity) — second priority
+     3. Missing U1 (declarative title) — third priority
+     Order within each tier by folder (alphabetical) so the backfill is folder-contiguous.
 4. Print the work queue as a table:
 
-   | Note | Current score | Missing fields |
-   |---|---|---|
-   | `python/index.md` | 3/7 | tldr-callout, diagram, worked-example, when-not-to-use |
-   | … | … | … |
+   | Note | Flat score | U4 recall | U7 maturity | Action |
+   |---|---|---|---|---|
+   | `dsa/06-dynamic-programming.md` | 7/7 | ✗ | ✗ | add recall prompts + set maturity |
+   | `sql/02-window-functions.md` | 7/7 | ✗ | budding | add recall prompts |
+   | … | … | … | … | … |
 
    Ask: "Proceed with uplifting these **N notes**?"
 
@@ -120,15 +130,46 @@ Read the full note. Also read the highest-scoring note in the same folder (from 
   - If version is not detectable, ask: "Code block in `<note>` uses `<library>` — what version was this tested against?"
   - Add `# tested: <lib>==<version>, python==3.12` as the first line of the block.
 
+**retrieval-prompts** (if missing — applies to ALL leaf types: `learning`, `cookbook`, `production`, `cheatsheet`, `comparison`, `troubleshooting`):
+- Read the note body. Focus on: key thresholds/numbers, API names, decision criteria, failure modes, "when NOT to use" anti-patterns.
+- Write a `## Recall prompts` section using Obsidian collapsible callouts. Place it as the second-to-last section (before See Also).
+- Format:
+  ```markdown
+  ## Recall prompts
+
+  > [!question] <one specific retrievable fact — a mechanism, threshold, or decision>
+  > [!answer]- <concrete answer — numbers, names, conditions; no vague generalities>
+
+  > [!question] When would you NOT use <X>?
+  > [!answer]- <specific anti-pattern with concrete triggering condition>
+  ```
+- Prompt count by maturity:
+  - `seedling` → 2 prompts (the most critical fact + the key anti-pattern)
+  - `budding` → 3 prompts
+  - `evergreen` or promoting to evergreen → 4–5 prompts
+- Skip only `type: index` hub notes and `type: reference` roadmaps (these are navigational, not retrievable facts).
+- Skip `type: meta` (vault infra files — SCHEMA, CONVENTIONS, etc.).
+- Quality bar: each answer must be a concrete fact (number, API name, failure mode) — not a restatement of the question. "Use buffered channels when goroutines produce faster than they consume" ✓. "Use it when needed" ✗.
+
 ### 2c. Merge changes into the note
 
 Apply all generated blocks into the existing note at the correct positions. Never delete or rewrite existing content — only insert new sections/blocks.
 
-Bump frontmatter:
+Bump frontmatter and promote maturity:
 ```yaml
 updated: <TODAY>
 last_verified: <TODAY>
 ```
+
+**Maturity promotion / backfill logic (runs on every uplift, even if no other fields were added):**
+- Check current `maturity:` value; if field is missing, infer it first, then write it.
+- Inference rules (in order — use the highest that all criteria are met):
+  1. `evergreen`: all of [tldr-callout ✓, diagram/worked-example ✓, see-also ✓, recall prompts (U4) ✓, last_verified within TTL ✓, confidence: high ✓]
+  2. `budding`: all of [tldr-callout ✓, diagram OR worked-example ✓, see-also ✓] — but recall prompts may still be missing
+  3. `seedling`: everything else (newly created, stub content, missing fields)
+- If existing `maturity:` is lower than the inferred value, **promote** it (e.g., seedling → budding).
+- Never demote (do not lower maturity on uplift — only `/refresh` can do that when `last_verified` lapses).
+- When running `--worst-typed` for the bulk backfill, **always write `maturity:` even when no other field changes** — this is a valid single-field uplift.
 
 ---
 
@@ -169,6 +210,8 @@ On confirmation:
 ## Step 5: Suggest next run
 
 After completing, suggest:
-> "Run `/lint` to get the updated scores, or `/uplift <next-folder>` to continue."
+> "Run `/lint --typed` to get updated scores and typed coverage, or `/uplift <next-folder>` to continue."
 
-Print the folders still below 6/7 average (from the lint report) sorted by current average score ascending.
+Print two tables:
+1. Folders still below 6/7 flat average (from flat lint report) — sorted ascending.
+2. Folders still below 80% U4 coverage (from typed lint report) — sorted ascending by U4 %. Suffix the U4 gap count: "X notes still missing recall prompts".

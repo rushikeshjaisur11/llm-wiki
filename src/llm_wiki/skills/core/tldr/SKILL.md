@@ -14,7 +14,7 @@ Save to the most relevant folder based on the topic discussed.
 - Research → research/
 - General → daily/ with today's date
 
-Also update memory.md at the vault root with any new patterns or preferences discovered in this session.
+Also update `{{VAULT}}/wiki/memory.md` with any new patterns or preferences discovered in this session. (Note: `wiki/memory.md` is the sanctioned location — do NOT write to `memory.md` at the vault root, which lint flags as a loose root file.)
 
 **Freshness suggestions (append at end of tldr note):**
 After summarizing, propose:

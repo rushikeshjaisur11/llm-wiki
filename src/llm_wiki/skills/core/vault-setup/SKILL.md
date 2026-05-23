@@ -36,19 +36,15 @@ DEST="$HOME/.claude/skills"
 
 mkdir -p "$DEST"
 
-# 1. Copy core skills
-for skill_dir in "$REPO_SKILLS/core"/*/; do
+# 1. Copy all skills (flat layout — skills/ contains one subdir per skill)
+for skill_dir in "$REPO_SKILLS"/*/; do
   skill_name="$(basename "$skill_dir")"
-  mkdir -p "$DEST/$skill_name"
-  cp "$skill_dir/SKILL.md" "$DEST/$skill_name/SKILL.md"
+  [ "$skill_name" = "_wiki" ] && continue   # _wiki is copied separately in step 3
+  if [ -f "$skill_dir/SKILL.md" ]; then
+    mkdir -p "$DEST/$skill_name"
+    cp "$skill_dir/SKILL.md" "$DEST/$skill_name/SKILL.md"
+  fi
 done
-
-# 2. Copy Obsidian extras (only if user chose Obsidian)
-# for skill_dir in "$REPO_SKILLS/extras/obsidian"/*/; do
-#   skill_name="$(basename "$skill_dir")"
-#   mkdir -p "$DEST/$skill_name"
-#   cp "$skill_dir/SKILL.md" "$DEST/$skill_name/SKILL.md"
-# done
 
 # 3. Copy Python search tools
 mkdir -p "$DEST/_wiki"
@@ -57,10 +53,10 @@ cp "$REPO_SKILLS/_wiki/"*.py "$DEST/_wiki/"
 # 4. Write vault path config for Python scripts
 echo "$VAULT_PATH" > "$DEST/_wiki/.vault_path"
 
-# 5. Patch all placeholders in copied files
+# 5. Patch all placeholders in copied files (case-insensitive vault path + scripts path)
 SCRIPTS_PATH="$DEST/_wiki"
-find "$DEST" -name "*.md" -exec sed -i "s|{{VAULT}}|$VAULT_PATH|g" {} +
-find "$DEST" -name "*.md" -exec sed -i "s|{{SCRIPTS}}|$SCRIPTS_PATH|g" {} +
+# Use perl for cross-platform in-place edit (works on Linux, macOS, Git Bash/WSL)
+find "$DEST" -name "*.md" -exec perl -i -pe "s|{{VAULT}}|$VAULT_PATH|gi; s|{{SCRIPTS}}|$SCRIPTS_PATH|gi" {} +
 
 # 6. Register vault context globally (skip for local install)
 mkdir -p "$HOME/.claude"
@@ -91,19 +87,15 @@ $DEST = "$env:USERPROFILE/.claude/skills"
 # Local:
 # $DEST = "$VAULT/.claude/skills"
 
-# 1. Copy core skills
-Get-ChildItem "$REPO_SKILLS/core" -Directory | ForEach-Object {
-    $d = "$DEST/$($_.Name)"
-    New-Item -ItemType Directory -Force $d | Out-Null
-    Copy-Item "$($_.FullName)/SKILL.md" "$d/SKILL.md"
+# 1. Copy all skills (flat layout — skills/ contains one subdir per skill)
+Get-ChildItem $REPO_SKILLS -Directory | Where-Object { $_.Name -ne "_wiki" } | ForEach-Object {
+    $skillMd = Join-Path $_.FullName "SKILL.md"
+    if (Test-Path $skillMd) {
+        $d = "$DEST/$($_.Name)"
+        New-Item -ItemType Directory -Force $d | Out-Null
+        Copy-Item $skillMd "$d/SKILL.md"
+    }
 }
-
-# 2. Copy Obsidian extras (only if user chose Obsidian)
-# Get-ChildItem "$REPO_SKILLS/extras/obsidian" -Directory | ForEach-Object {
-#     $d = "$DEST/$($_.Name)"
-#     New-Item -ItemType Directory -Force $d | Out-Null
-#     Copy-Item "$($_.FullName)/SKILL.md" "$d/SKILL.md"
-# }
 
 # 3. Copy Python search tools
 $WIKI_DEST = "$DEST/_wiki"
@@ -117,8 +109,8 @@ $VAULT | Set-Content "$WIKI_DEST/.vault_path" -NoNewline
 $SCRIPTS_PATH = $WIKI_DEST.Replace("\", "/")
 Get-ChildItem $DEST -Recurse -Filter "*.md" | ForEach-Object {
     (Get-Content $_.FullName -Raw) `
-        -replace [regex]::Escape("{{VAULT}}"), $VAULT `
-        -replace [regex]::Escape("{{SCRIPTS}}"), $SCRIPTS_PATH |
+        -replace "(?i)" + [regex]::Escape("{{VAULT}}"), $VAULT `
+        -replace "(?i)" + [regex]::Escape("c:/Users/rushi/.claude/skills/_wiki"), $SCRIPTS_PATH |
     Set-Content $_.FullName -NoNewline
 }
 

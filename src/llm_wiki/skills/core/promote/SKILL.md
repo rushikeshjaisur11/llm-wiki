@@ -80,18 +80,52 @@ For a new concept note, a full note is written.
 
 ---
 
-## Step 4: Update last_verified
+## Step 4: Add Up-link to promoted content
+
+Every promoted note (new concept notes and cookbook appends) must have an Up-link to the folder hub:
+
+**For a new concept note:** prepend after the frontmatter close:
+```markdown
+> **Up:** [[learning/<tech>/index]]
+```
+
+**For a cookbook/troubleshooting append:** no Up-link needed (the parent file already has one).
+
+---
+
+## Step 5: Update hub index
+
+When a new concept note is written (not just appended to cookbook/troubleshooting):
+- Open `learning/<tech>/index.md`
+- Add the new note to the "Notes" list: `N. **[[learning/<tech>/<slug>]]** — <one-line description>`
+- Bump `updated:` in the hub frontmatter to today
+
+---
+
+## Step 6: Update search index
+
+After writing the promoted content, run:
+```bash
+python {{SCRIPTS}}/build_index.py --update "{{VAULT}}/learning/<tech>/<slug>.md"
+```
+This makes the promoted note immediately findable via `/query` without a full `/graphbuild`.
+
+---
+
+## Step 7: Update last_verified
 
 If the promoted content relates to an existing note, bump that note's `last_verified` to today.
 
 ---
 
-## Step 5: Log
+## Step 8: Log
 
 Append to `wiki/log.md`:
 ```
 ## [DATE] promote | <snippet title>
 - From: [[daily/YYYY-MM-DD]]
 - To: [[learning/<tech>/cookbook]] or [[new-note]]
+- Hub updated: yes/no
+- Index rebuilt: yes (incremental)
 - Anonymized: yes/no
 ```
