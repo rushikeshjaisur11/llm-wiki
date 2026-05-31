@@ -147,9 +147,9 @@ graph LR
 
 ## Day-by-day schedule
 
-| Day | Phase | Topic | Key concepts | Practical | Est. |
-|-----|-------|-------|-------------|-----------|------|
-| 1   | F     | ...   | ...         | ...       | Xh   |
+| Day | Phase | Topic | Key concepts | Practical | Est. | # notes |
+|-----|-------|-------|-------------|-----------|------|---------|
+| 1   | F     | ...   | ...         | ...       | Xh   | 1       |
 
 ## Datasets & tools
 
@@ -253,9 +253,25 @@ Before generating, run targeted refresh for this day's topics:
 - `context7` query for any library used in today's practical
 This keeps each day current, not frozen at plan-creation time.
 
-### B2. Write `day-<NN>-concepts.md`
+### B2. Write concept note(s) for day `<NN>`
 
-Type: `learning` (Concept). Must pass Universal U1–U7 + Concept add-ons per Quality Rubric v3.
+#### B2a. Apply the split heuristic (deterministic)
+
+Derive this day's concept set from the plan's "Key concepts" column for day N:
+
+- **1 concept → 1 note:** write `day-<NN>-concepts.md` (original behavior, fully backward-compatible).
+- **2–3 concepts → N notes:** write `day-<NN>-concepts-01-<topic-slug>.md`, `day-<NN>-concepts-02-<topic-slug>.md`, … — one atomic note per distinct concept, each fully self-contained (own declarative title, own diagram, own worked example, own when-not-to-use, own recall prompts). Do **not** also write a `day-<NN>-concepts.md`; the numbered notes are the concepts for this day. Use a short kebab-case slug for each topic (e.g. `day-07-concepts-01-attention-mechanism.md`).
+- **>3 concepts in plan → warn + cap:** add a `> [!warning]` callout at the top of the first generated concept note: "Day <N> has >3 atomic concepts assigned in the plan. Only the first 3 are generated here — run `/curriculum replan` to redistribute the remaining concepts into adjacent days." Generate at most 3 concept notes.
+- Set `needs_split: true` on any note that still covers more than one coherent concept. Otherwise `needs_split: false`.
+
+**Within-day cross-linking for multi-note days:**
+- Each `day-<NN>-concepts-0K` note's `## See also` links to adjacent notes: `concepts-0(K-1)` and `concepts-0(K+1)` within the same day.
+- `day-<NN>-concepts-01` also links back to the previous day's last concept file; the last concept note links forward to next day's first concept file.
+- `practical.md` and `review.md` `prerequisites:` list **all** this day's concept files (e.g. `["[[curricula/<slug>/day-<NN>-concepts-01-<slug>]]", "[[curricula/<slug>/day-<NN>-concepts-02-<slug>]]"]`).
+
+#### B2b. Write each concept note
+
+Type: `learning` (Concept). Must pass Universal U1–U7 + Concept add-ons per Quality Rubric v3. Apply the template below **once per concept note** (filename is `day-<NN>-concepts.md` for single-concept days, `day-<NN>-concepts-0N-<topic-slug>.md` for multi-concept days).
 
 ```markdown
 ---
@@ -503,7 +519,7 @@ source: ""
 ```
 ## [YYYY-MM-DD] curriculum | <slug> day <N>
 - Topic: <topic>
-- Files: day-<NN>-concepts.md · day-<NN>-practical.md · day-<NN>-review.md
+- Files: day-<NN>-concepts*.md (<N> concept note(s)) · day-<NN>-practical.md · day-<NN>-review.md
 - Research: <sources used>
 ```
 
@@ -529,7 +545,7 @@ Mark active curriculum with ★.
 ## FLOW D — `/curriculum audit <slug>`
 
 1. Read `curricula/<slug>/plan.md` — extract every concept from the concept tree (all bullet points not marked with `[[link]]`)
-2. Glob `curricula/<slug>/day-*-concepts.md` — extract H2 section headings
+2. Glob `curricula/<slug>/day-*-concepts*.md` — extract H2 section headings from each file (covers both single-note `day-NN-concepts.md` and multi-note `day-NN-concepts-01-*.md` … `day-NN-concepts-0N-*.md`)
 3. Diff: concepts promised in plan vs concepts found in generated files
 4. Output a coverage report:
 
@@ -539,8 +555,8 @@ Mark active curriculum with ★.
 ✓ 34 concepts covered
 ⚠ 8 concepts not yet generated (days 12–15 not created yet)
 ✗ 2 concepts missing from generated days:
-  - "attention masks" — promised in day 7 but not found in day-07-concepts.md
-  - "gradient checkpointing" — promised in day 11 but not found in day-11-concepts.md
+  - "attention masks" — promised in day 7 but not found in any day-07-concepts*.md
+  - "gradient checkpointing" — promised in day 11 but not found in any day-11-concepts*.md
 ```
 
 Offer to regenerate the flagged days.
@@ -605,7 +621,7 @@ No personal `progress.md` content is included.
 2. Read `curricula/<slug>/plan.md` frontmatter `created:` + time_budget days
 3. Compute target day = `(today - created).days + 1`
 4. Check `progress.md` — is this day generated?
-   - If yes: "Today is day N: <topic>. Files ready: [[day-NN-concepts]] [[day-NN-practical]] [[day-NN-review]]"
+   - If yes: "Today is day N: <topic>. Files ready: [[day-NN-concepts]] (or [[day-NN-concepts-01-<slug>]] … for multi-note days) · [[day-NN-practical]] · [[day-NN-review]]"
    - If no: "Today is day N: <topic>. Generating now..." → run Flow B for day N
 
 ---
@@ -619,11 +635,11 @@ Update `curricula/index.md` frontmatter `active:` to `<slug>`. Confirm: "Active 
 ## Behavior rules (always apply)
 
 1. **Anonymization** — never mention employer name in any generated file; use "our platform" / "our workload"
-2. **No difficulty folders** — all days flat in `<slug>/`; level via frontmatter `phase:` field only
+2. **No difficulty folders** — all days flat in `<slug>/`; level via frontmatter `phase:` field only. Each day has 1–3 atomic concept notes (`day-NN-concepts*.md` — see B2a), one practical, and one review
 3. **Examples are concrete** — real numbers, real library names, real dataset rows; never `<placeholder>` or `<your_value>`
 4. **Version-pin all code** — every code block starts with `# tested: lib==version`
 5. **Quality Rubric v3** — apply U1–U7 universally + type-specific add-ons per note `type:`:
-   - `day-NN-concepts.md` → type `learning`: U1–U7 + diagram + "Why does this work?" + when-not-to-use + recall prompts
+   - `day-NN-concepts*.md` (**each** atomic concept note) → type `learning`: U1–U7 + diagram + "Why does this work?" + when-not-to-use + recall prompts
    - `day-NN-practical.md` → type `cookbook`: U1–U7 + version-pinned code + what-can-go-wrong + prerequisite wikilink + recall prompts
    - `day-NN-review.md` → type `reference`: U1–U7 + structured table + see-also wikilinks + recall prompts
    - All files get `maturity: seedling` on creation; user promotes to `budding`/`evergreen` as they revise
