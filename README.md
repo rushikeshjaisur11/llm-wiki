@@ -80,15 +80,79 @@ One free-text question about who you are, then asks which markdown tool you use.
 
 Fetches the canonical `source:` URL for a note, diffs its current claims against the live docs, proposes updates, and bumps `last_verified`. Closes the staleness loop without deleting the original.
 
+Use `--queue [N]` to surface the N most overdue notes for a spaced-repetition review session.
+
 ```
 /refresh learning/langgraph/state-and-reducers
+/refresh --queue 5
 ```
 
 ---
 
-### `/audit` — Quarterly vault health report
+### `/uplift` — Bulk-fix low-scoring notes
+
+Scans a folder for notes missing Quality Rubric v3 fields and auto-generates them: `> [!tldr]` callout, Mermaid diagram, worked example, `when-not-to-use` section, `see-also` wikilinks, version pins, and **recall prompts** (the highest-evidence retention intervention). Promotes `maturity:` tag when a note reaches full coverage.
+
+```
+/uplift learning/langgraph
+/uplift learning/ai
+```
+
+---
+
+### `/learningpath` — Generate a tiered reading plan
+
+Searches the vault and analyses the knowledge graph to assign existing notes to **Foundations / Core / Advanced** tiers, with reading-time estimates, prerequisite-aware ordering, and freshness indicators. Saves the plan to `projects/` on request.
+
+```
+/learningpath understand vLLM internals
+/learningpath build a RAG pipeline with reranking
+```
+
+---
+
+### `/curriculum` — Goal-driven mastery curriculum
+
+Give a learning goal; get a complete, research-backed day-by-day curriculum generated directly into your vault. Researches the topic via web search, library docs (context7), and existing vault notes, then writes an exhaustive concept tree and a full day-by-day schedule upfront. Days are generated on demand — one session at a time — so content stays current and nothing is wasted if you change pace.
+
+Each day produces **1–3 atomic concept notes + a practical + a quiz/review file**, all scored against Quality Rubric v3. Deep days with multiple distinct concepts get one atomic note per concept (each self-contained with its own diagram, worked example, and recall prompts) instead of one bloated file.
+
+**Invocation modes:**
+
+| Command | Action |
+|---------|--------|
+| `/curriculum <goal>` | Research + generate full plan |
+| `/curriculum next` | Generate next undone day (active curriculum) |
+| `/curriculum next --slug <slug>` | Generate next day for a specific curriculum |
+| `/curriculum day <N>` | Generate (or regenerate) a specific day |
+| `/curriculum list` | Show all curricula + progress |
+| `/curriculum resume <slug>` | Switch active curriculum |
+| `/curriculum audit <slug>` | Check concept coverage vs. generated days |
+| `/curriculum replan` | Rewrite plan from next undone day (adaptive) |
+| `/curriculum grade <N>` | Run auto-grader for day N |
+| `/curriculum export <slug>` | Export shareable bundle (no personal progress) |
+| `/curriculum import <path>` | Import a shared curriculum bundle |
+| `/curriculum today` | Show/generate today's scheduled day |
+
+**Extended features:**
+- **Calendar integration** — generates `.ics` with one event per day and `obsidian://` deep links; import once into Google Calendar / Outlook
+- **Cross-curriculum prereq detection** — detects topic overlap with completed curricula; offers `--skip-known` to jump ahead
+- **Auto-grading** — generates `graders/day-NN-grader.py` per practical; `/curriculum grade <N>` runs assertions and appends PASS/FAIL to the review file
+- **Shareable export** — `/curriculum export` produces `SHARE.md` + `manifest.json` (concept tree, datasets, tool versions — no personal progress); `/curriculum import` reconstructs locally
+- **Adaptive replanning** — `/curriculum replan` rewrites the plan from the next undone day based on "too easy / too hard / skipped" markers; archives old plan as `plan.v1.md`
+- **Coverage audit** — `/curriculum audit` diffs the concept tree in `plan.md` against generated days and flags any promised concept not yet written
+
+Curricula live in a top-level `curricula/<slug>/` folder, separate from atomic `learning/` notes.
+
+---
+
+### `/lint --quarterly` — Quarterly vault health report
 
 Full-vault quality scan: staleness by topic class, confidence distribution, contradictions, orphans, dangling links, and learning folder structure gaps. Produces a dated `wiki/audit-YYYY-Q.md` dashboard. Run once per quarter.
+
+```
+/lint --quarterly
+```
 
 ---
 
@@ -124,6 +188,8 @@ Appends a version-pinned, copy-paste ready code recipe to `learning/<tech>/cookb
 |-------|---------|
 | `/defuddle` | Fetch any URL as clean markdown (used internally by `/ingest` and `/refresh`) |
 | `/graphbuild` | Rebuild the wiki knowledge graph — includes stale and low-confidence subgraph reports |
+| `/linkedin` | Draft a LinkedIn post from a topic, rough notes, or vault content; uses Unicode bold/italic that renders on LinkedIn |
+| `/skill-optimizer` | Auto-improve any `SKILL.md` via a mutate → evaluate → promote loop; no API key required — runs natively through Claude Code |
 | `/obsidian-cli` | Direct vault operations via Obsidian CLI (Obsidian only) |
 | `/obsidian-markdown` | Reference for Obsidian-specific syntax: wikilinks, callouts, embeds, frontmatter (Obsidian only) |
 | `/obsidian-bases` | Create and edit Obsidian Bases `.base` files — table/card views, filters, formulas (Obsidian only) |
@@ -158,10 +224,38 @@ All notes follow the **LLM Wiki v2** pattern: every claim carries provenance and
 last_verified: 2026-05-08         # date claims were verified against source
 confidence: high                  # high | medium | low
 provenance: extracted             # extracted | inferred | ambiguous
+maturity: seedling                # seedling | budding | evergreen — promote manually as you revise
 verified_against_version: "langgraph==1.0.2"  # version tested against (library notes)
 superseded_by: null               # [[note]] if this note is obsolete
 contradicts: []                   # cross-links to conflicting notes
+needs_split: false                # true if note covers more than one idea
 ```
+
+### Quality Rubric v3 (typed)
+
+Every note must pass the **7 universal fields** (U1–U7) plus type-specific add-ons:
+
+| # | Field | Rule |
+|---|-------|------|
+| U1 | **Declarative title** | States a claim, not a noun: "LangGraph state is a TypedDict" not "State and Reducers" |
+| U2 | **TL;DR callout** | `> [!tldr]` ≤ 3 lines, written in own words (not copy-pasted from source) |
+| U3 | **Atomic** | One idea per note; flag `needs_split: true` if two ideas are present |
+| U4 ⭐ | **Recall prompts** | 2–5 `> [!question]` / `> [!answer]-` Q&A pairs — highest-evidence retention intervention |
+| U5 | **Provenance** | `source:` URL + `last_verified:` date in frontmatter |
+| U6 | **See-also** | 3–5 `[[wikilinks]]` to related vault notes |
+| U7 | **Maturity tag** | `maturity: seedling \| budding \| evergreen` in frontmatter |
+
+**Type-specific add-ons** (only for the relevant `type:` value):
+
+| `type:` | Required add-ons | Exempt from |
+|---------|-----------------|-------------|
+| `learning` (concept) | Mermaid diagram; "Why does this work?" section; when-not-to-use | version-pins |
+| `cookbook` (procedure) | Version-pinned code (`# tested: lib==x.y`); `## What can go wrong`; prereq wikilink | diagram |
+| `cheatsheet`, `reference` | Structured table; cross-link to a concept note for the "why" | diagram, worked-example |
+| `tutorial` | Ordered `## Step N` headings; prerequisites declared; closing "You should now be able to…" | — |
+| `index` (hub) | Orientation paragraph; mental-model diagram; reading order; sub-cluster annotations | worked-example, version-pins |
+
+Run `/uplift <folder>` to auto-generate missing fields. Run `/lint` to score existing notes.
 
 ### TTL rules (staleness thresholds)
 
@@ -173,7 +267,7 @@ contradicts: []                   # cross-links to conflicting notes
 | Architecture concepts | architecture | 180 days |
 | Foundations | dsa, sql, ml | 365 days |
 
-`/lint` flags overdue notes. `/refresh` re-verifies against source. `/audit` gives the quarterly dashboard.
+`/lint` flags overdue notes. `/refresh` re-verifies against source. `/lint --quarterly` gives the full audit dashboard.
 
 ### Supersession protocol
 
