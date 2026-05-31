@@ -34,17 +34,49 @@ spark-delta        |     8 | data-engineering/databricks-data-engineering-course
 ...
 ```
 
-## Step 3: Report totals
+## Step 3: Report totals + cluster health
 
 From `graph.json.meta`, print:
 - Total nodes
 - Total edges
 - Dangling links (wikilinks pointing to notes that don't exist)
+- **Modularity score** (from `meta.modularity` if present, else compute as: `Q = (edges within communities) / (total edges) - expected`)
+
+Per-community cluster health metrics:
+```
+Community   | Nodes | In-degree avg | Hub         | Leaves missing Up-link
+------------|-------|---------------|-------------|------------------------
+agents      |    12 |          3.4  | agents/index|  0
+claude-code |    15 |          2.1  | claude-code/index| 0
+...
+```
+
+A modularity score ≥ 0.5 indicates well-separated clusters (good for Obsidian graph view).
+Score < 0.3 means the graph is too interconnected — wiki/index.md may still be linking to leaves directly.
 
 Also report from `build_index.py` stdout:
 - Notes indexed
 - PMI synonym pairs discovered
 
-## Step 4: Offer next actions
+## Step 4: Staleness subgraph report
 
-> Graph and search indexes rebuilt. Run `/graphbuild` again after more ingests, or use `python {{SCRIPTS}}/search.py "<query>"` to test search results.
+After the community table, print two additional views:
+
+**Stale subgraph** — notes where `today - last_verified > TTL_for_class(tags)`:
+```
+Stale notes (top 10 most overdue):
+Note | last_verified | TTL class | Days overdue
+```
+Use TTL rules from `{{VAULT}}/SCHEMA.md`.
+
+**Low-confidence subgraph** — notes where `confidence: low` or `confidence: medium` in frontmatter (top 10 by age):
+```
+Low-confidence notes:
+Note | confidence | last_verified
+```
+
+These are informational — no action taken. The user can use `/refresh <note>` or `/audit` to address them.
+
+## Step 5: Offer next actions
+
+> Graph and search indexes rebuilt. Run `/graphbuild` again after more ingests, or use `python {{SCRIPTS}}/search.py "<query>"` to test search results. Run `/audit` for a full quarterly health report.

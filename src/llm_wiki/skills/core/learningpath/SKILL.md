@@ -43,6 +43,8 @@ The JSON output has three tiers:
 
 Each entry: `id`, `title`, `summary`, `tags`, `reading_time` (minutes).
 
+**Prerequisite-aware ordering:** Within each tier, notes are topologically sorted by their `prerequisites:` frontmatter field. If note B declares `prerequisites: ['[[A]]']`, A always appears before B. This happens automatically in `learningpath.py` — no manual intervention needed. The `prerequisites:` field accrues organically; no backfill is required.
+
 ---
 
 ## Step 3: Present the learning path
@@ -71,6 +73,10 @@ Rules:
 - Write a one-line *Why* from the note's summary field — make it specific, not generic
 - If a tier is empty, omit that section entirely (no "No foundations found" clutter)
 - Group reading time as hours + minutes when total exceeds 60 min (e.g. "~2 h 15 min")
+- **Freshness indicator**: after each note's title, append the staleness signal if applicable:
+  - If `confidence: low` → `⚠️ low confidence`
+  - If `last_verified` is past TTL → `⚠️ stale (last verified YYYY-MM-DD)` — suggest `/refresh` before relying on it
+  - `confidence: high` + recent `last_verified` → no indicator needed
 
 ---
 

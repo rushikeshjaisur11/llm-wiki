@@ -14,5 +14,10 @@ Save to the most relevant folder based on the topic discussed.
 - Research → research/
 - General → daily/ with today's date
 
-Also update memory.md at the vault root with any new patterns or 
-preferences discovered in this session.
+Also update `{{VAULT}}/wiki/memory.md` with any new patterns or preferences discovered in this session. (Note: `wiki/memory.md` is the sanctioned location — do NOT write to `memory.md` at the vault root, which lint flags as a loose root file.)
+
+**Freshness suggestions (append at end of tldr note):**
+After summarizing, propose:
+1. Which `cookbook.md` entries could be added based on code or recipes discussed this session (format: "Suggest adding to `learning/<tech>/cookbook.md`: <recipe name>")
+2. Which existing notes had their `last_verified` bumped by this session's work (e.g. "Verified [[langgraph/state-and-reducers]] against v1.0.2 today — run `/refresh` to update frontmatter")
+These are suggestions only; don't auto-write unless the user agrees.
