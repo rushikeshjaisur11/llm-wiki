@@ -64,6 +64,20 @@ Reads or creates today's daily note, shows the last 5 wiki log entries (what was
 
 ---
 
+### `/tip` — Note of the day
+
+Picks a fresh, non-duplicate topic and files a rubric-compliant note into `tips/` at the vault root (filename format `<YYYY-MM-DD>-<slug>.md`). Topics come from two spaces: the tracked AI/LLM space (Claude/Claude Code workflow, LangGraph, LangChain, Google ADK, RAG, agents, vector DBs, new model/framework releases) and whatever the vault's `learning/` tree shows you're actually studying (e.g. a `learning/python/` folder surfaces topics like `asyncio` internals, new stdlib features, or notable PEPs). Language/library topics always include a runnable worked-example code snippet.
+
+```
+/tip
+/tip <optional topic hint>
+/tip --digest   # weekly roundup of the past 7 days' tips
+```
+
+Runs manually or via the daily automation; maintains its own `tips/index.md` hub.
+
+---
+
 ### `/tldr` — End-of-session summary
 
 Extracts decisions, key things to remember, and next actions from the current session. Saves to the most relevant folder. Asks if any insights are worth filing permanently to the wiki.
