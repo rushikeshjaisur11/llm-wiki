@@ -24,7 +24,7 @@ Run a quick check: scan frontmatter of all files in `learning/` for `last_verifi
 Keep this brief — it's a nudge, not a full lint.
 
 **Index reconcile nudge (non-blocking):**
-If any file under `{{VAULT}}/learning/tips/` has a newer mtime than `{{VAULT}}/wiki/graph.json` (or `graph.json` doesn't exist), say:
+If any file under `{{VAULT}}/tips/` has a newer mtime than `{{VAULT}}/wiki/graph.json` (or `graph.json` doesn't exist), say:
 > "New tips haven't been indexed yet. Run `/graphbuild` to refresh search/graph."
 This catches tips written by the daily/weekly automation that skipped indexing.
 
