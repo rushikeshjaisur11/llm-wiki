@@ -17,9 +17,10 @@ Vault root: `{{VAULT}}/`
 
 ## Tip mode (default)
 
-1. **See what's already covered.** Read `{{VAULT}}/tips/index.md` (create it — see
-   step 3 — if this is the first run). Note the last ~30 days of topics; never repeat one of
-   them.
+1. **See what's already covered.** Read `{{VAULT}}/tips/index.md`. If `{{VAULT}}/tips/`
+   or `index.md` doesn't exist yet, this is the first run — treat it as "no topics covered
+   yet" and continue (the folder and index get created in step 4, not as an error). Note the
+   last ~30 days of topics; never repeat one of them.
 
 2. **Pick a fresh topic.**
    - If a topic hint was given as an argument, use it.
@@ -109,7 +110,9 @@ Vault root: `{{VAULT}}/`
    Apply the vault's **anonymization rule** (no employer names) from `{{VAULT}}/CLAUDE.md`.
 
 4. **Update the tips hub** `{{VAULT}}/tips/index.md`:
-   - If missing, create it (`type: index`, one-paragraph orientation, this section):
+   - If `{{VAULT}}/tips/` doesn't exist, create the folder — this is expected on the first run,
+     not a failure.
+   - If `index.md` is missing, create it (`type: index`, one-paragraph orientation, this section):
      ```markdown
      ## Tips log
      ```
@@ -128,7 +131,8 @@ Used by the weekly automation. Does not research a new topic — synthesizes the
 tips into one roundup note.
 
 1. Read every file in `{{VAULT}}/tips/` dated in the last 7 days (from `index.md`'s
-   log or by filename date). If none, stop and report "no tips this week."
+   log or by filename date). If `{{VAULT}}/tips/` or `index.md` doesn't exist, or no files
+   match, stop and report "no tips this week" — this is a normal empty state, not an error.
 2. Write `{{VAULT}}/tips/weekly/<ISO-week>-digest.md` (e.g. `2026-W27-digest.md`),
    same frontmatter shape as Tip mode (`type: changelog`, `tags: [tips, weekly-digest]`), body:
    - `> [!tldr]` — the week's themes in 2-3 lines
