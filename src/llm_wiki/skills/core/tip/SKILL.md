@@ -1,6 +1,6 @@
 ---
 name: tip
-description: Write today's "note of the day" — pick a fresh, timely, non-duplicate topic (either from the tracked AI/LLM space — Claude/Claude Code workflow, LangGraph, LangChain, Google ADK, RAG, agents, vector DBs, new model/framework releases — or from whatever the vault's learning/ tree shows the user is actually studying, e.g. Python asyncio internals, new stdlib features, notable PEPs), research it, and file a rubric-compliant note into tips/ at the vault root. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
+description: Write today's 2 "notes of the day" — pick two fresh, timely, non-duplicate topics (either from the tracked AI/LLM space — Claude/Claude Code workflow, LangGraph, LangChain, Google ADK, RAG, agents, vector DBs, new model/framework releases — or from whatever the vault's learning/ tree shows the user is actually studying, e.g. Python asyncio internals, new stdlib features, notable PEPs), research each, and file rubric-compliant notes into tips/ at the vault root. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
 ---
 
 Vault root: `{{VAULT}}/`
@@ -10,21 +10,23 @@ Vault root: `{{VAULT}}/`
 | Input | Mode |
 |---|---|
 | `--digest` | Weekly digest — see **Digest mode** below |
-| topic hint text | Tip mode, using the hint as the topic instead of auto-picking |
-| no argument | Tip mode, auto-pick a topic |
+| topic hint text | Tip mode, using the hint as topic 1 and auto-picking topic 2 |
+| no argument | Tip mode, auto-pick both topics |
 
 ---
 
 ## Tip mode (default)
+
+Generates **2 notes** per run, on two distinct topics.
 
 1. **See what's already covered.** Read `{{VAULT}}/tips/index.md`. If `{{VAULT}}/tips/`
    or `index.md` doesn't exist yet, this is the first run — treat it as "no topics covered
    yet" and continue (the folder and index get created in step 4, not as an error). Note the
    last ~30 days of topics; never repeat one of them.
 
-2. **Pick a fresh topic.**
-   - If a topic hint was given as an argument, use it.
-   - Otherwise survey two candidate spaces before picking:
+2. **Pick two fresh, distinct topics.**
+   - If a topic hint was given as an argument, that's topic 1; auto-pick topic 2 (below).
+   - Otherwise survey two candidate spaces and pick one topic from each, for variety:
      1. **What the user is actually learning** — scan the top-level folders/tags under
         `{{VAULT}}/learning/` (e.g. a `learning/python/` folder is a signal to look for new or
         interesting Python concepts: `asyncio` internals, new stdlib features, notable PEPs,
@@ -35,14 +37,17 @@ Vault root: `{{VAULT}}/`
         Google ADK, RAG techniques, agent frameworks, vector DBs, and any other notable AI/LLM
         framework, model, or paper release. Prefer primary sources (official docs/blogs/release
         notes) over aggregator summaries.
-   - Dedup check:
+     If only one space has a solid candidate, pick both topics from it — they must still be
+     distinct from each other and from the last ~30 days.
+   - Dedup check (run once per candidate topic):
      ```
      python {{SCRIPTS}}/search.py "<candidate topic>" --top 5
      ```
      If the vault already has solid coverage, pick the next candidate.
 
-3. **Write the note** → `{{VAULT}}/tips/<TODAY>-<slug>.md`. Follow
-   `{{VAULT}}/SCHEMA.md` in full (required frontmatter + Typed Rubric U1–U7):
+3. **Write one note per topic** → `{{VAULT}}/tips/<TODAY>-<slug>.md` (a distinct `<slug>` per
+   topic, e.g. `<TODAY>-langgraph-checkpointing.md` and `<TODAY>-asyncio-taskgroups.md`). Follow
+   `{{VAULT}}/SCHEMA.md` in full (required frontmatter + Typed Rubric U1–U7) for **each** note:
 
    ```markdown
    ---
@@ -116,12 +121,13 @@ Vault root: `{{VAULT}}/`
      ```markdown
      ## Tips log
      ```
-   - Prepend a line under `## Tips log`:
+   - Prepend one line per note under `## Tips log` (both today's notes):
      ```
      - <TODAY> — [[tips/<TODAY>-<slug>|<Title>]]
+     - <TODAY> — [[tips/<TODAY>-<slug-2>|<Title 2>]]
      ```
 
-5. → **[Wiki Update]** (below).
+5. → **[Wiki Update]** (below), once per note.
 
 ---
 
@@ -146,7 +152,8 @@ tips into one roundup note.
 
 ## Wiki Update (runs after every mode)
 
-Same as `/ingest`'s Wiki Update tail:
+Same as `/ingest`'s Wiki Update tail. In Tip mode, run this once per note written
+(twice total for the day's 2 notes):
 
 1. ```
    python {{SCRIPTS}}/search.py "<new note tags and title keywords>" --top 8
