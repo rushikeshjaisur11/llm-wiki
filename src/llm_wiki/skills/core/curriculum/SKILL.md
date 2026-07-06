@@ -7,7 +7,7 @@ description: |
 # /curriculum — Mastery Curriculum Generator
 
 Vault root: `{{VAULT}}/`
-Skill templates: `c:/Users/rushi/.claude/skills/curriculum/templates/`
+Templates: `{{SKILLS}}/curriculum/templates/` — Read the relevant template file when generating day content or plan files.
 
 ---
 
@@ -26,6 +26,8 @@ Skill templates: `c:/Users/rushi/.claude/skills/curriculum/templates/`
 | `/curriculum export <slug>` | Export shareable bundle (no personal progress) |
 | `/curriculum import <path>` | Import a shared curriculum bundle |
 | `/curriculum today` | Show/generate today's day based on schedule |
+| `/curriculum ics [<slug>]` | Generate (or regenerate) schedule.ics for active or named curriculum |
+| `/curriculum done <N>` | Quiz day N recall prompts; on pass archive files to done/ and tick all checkboxes |
 
 Parse the first word after `/curriculum` to dispatch. If the argument is none of the keywords above, treat the entire argument string as a `<goal>` and run the first-time setup flow.
 
@@ -46,10 +48,12 @@ Store answers. If user skips a question, use: 1 h/day · 30 days · balanced · 
 
 ### A2. Research phase (parallel — single message, multiple tool calls)
 
+Derive `<YEAR>` from today's date (available in the session context) before running searches. Do not hardcode a year.
+
 Fan out simultaneously:
 
 **A2a. WebSearch** (run all three queries in parallel):
-- `"<goal> curriculum 2026"`
+- `"<goal> curriculum <YEAR>"`
 - `"<goal> complete roadmap beginner to advanced"`
 - `"best resources to learn <goal> site:github.com OR site:reddit.com OR site:roadmap.sh"`
 
@@ -87,138 +91,18 @@ This tree becomes the "no concepts missed" guarantee and seeds both `plan.md` an
 **Slug:** goal lowercased, spaces → hyphens, punctuation stripped, max 60 chars.
 Example: "learn AI engineering" → `learn-ai-engineering`
 
-**Write `curricula/<slug>/plan.md`:**
+**Write plan, progress, and index files:** Read `{{SKILLS}}/curriculum/templates/plan-files.md` for the three file templates (plan.md, progress.md, and index.md). Fill all `<placeholder>` values and write to their target paths (`curricula/<slug>/plan.md`, `curricula/<slug>/progress.md`, `curricula/index.md`).
 
-```markdown
----
-title: "Curriculum: <goal>"
-created: <YYYY-MM-DD>
-updated: <YYYY-MM-DD>
-status: active
-curriculum_id: <UUID v4>
-tags: [curriculum, <topic-tag>]
-goal: "<goal>"
-time_budget: "<X h/day · N days>"
-starting_level: <level>
-bias: <concept|practical|balanced>
-target_outcome: "<one line from user>
-prerequisites: []
----
+**Generate `.ics` schedule — REQUIRED `AskUserQuestion` call:**
 
-# Curriculum: <goal>
+After writing the plan files, call `AskUserQuestion` (as a separate call, not inline) with this question before A5:
 
-> [!tldr]
-> Line 1: What you'll learn.
-> Line 2: The path (Foundations → Core → Advanced → Capstone).
-> Line 3: What the capstone delivers.
+> "Generate a calendar .ics file for daily reminders? (one event per day at 08:00 IST, Obsidian deep-link in each event)"
+> Options: `Yes, generate it` / `Skip for now`
 
-## Overview
-- **Total time:** N days · ~M hours
-- **Daily commitment:** X h/day
-- **Phases:** Foundations (days 1–A) → Core (A–B) → Advanced (B–C) → Capstone (C–N)
-- **Capstone:** <concrete deliverable description>
+If **Yes**: generate `curricula/<slug>/schedule.ics` by reading `{{SKILLS}}/curriculum/templates/ics-generator.py`, substituting the four variables (slug, start date from plan `created:`, topics list verbatim from plan's "Topic (day_label)" column, duration_min from time_budget), writing the filled-in script to a temp file, and running it via Bash. For multi-note days, the Obsidian DESCRIPTION link should point to `concepts-01-<topic-slug>` instead of `concepts`.
 
-## Phase map
-
-```mermaid
-graph LR
-  P1[Foundations<br/>Days 1–A] --> P2[Core<br/>Days A–B] --> P3[Advanced<br/>Days B–C] --> CAP[Capstone<br/>Days C–N]
-```
-
-## Concept coverage
-
-> Every concept in this curriculum. Concepts with a [[link]] are covered by existing vault notes — no new note needed.
-
-### Phase 1 — Foundations
-- Topic group
-  - Concept A [[existing-note]] ← vault already covers this
-  - Concept B ← will be generated day 2
-
-### Phase 2 — Core
-...
-
-### Phase 3 — Advanced
-...
-
-### Capstone
-- Deliverable: <description>
-- Tech used: <list>
-- Evaluation criteria: <how you know it's good>
-
-## Day-by-day schedule
-
-| Day | Phase | Topic | Key concepts | Practical | Est. | # notes |
-|-----|-------|-------|-------------|-----------|------|---------|
-| 1   | F     | ...   | ...         | ...       | Xh   | 1       |
-
-## Datasets & tools
-
-| Dataset | Source | Used in |
-|---------|--------|---------|
-| ...     | HuggingFace/`<name>` | day 5 |
-
-| Tool | Version | Used in |
-|------|---------|---------|
-| ...  | ...     | days 3–7 |
-
-## Reuses from vault
-
-- [[note-id]] — covers day N concepts (no new file needed)
-
-## Cross-curriculum prerequisites
-
-<!-- populated if other curricula exist with overlapping topics -->
-
-## Sources consulted
-
-- <url> (accessed <YYYY-MM-DD>)
-```
-
-**Write `curricula/<slug>/progress.md`:**
-
-```markdown
----
-title: "Progress: <goal>"
-created: <YYYY-MM-DD>
-updated: <YYYY-MM-DD>
-curriculum: "[[curricula/<slug>/plan]]"
-active_day: 0
----
-
-# Progress: <goal>
-
-## Checklist
-
-| Day | Concepts | Practical | Review | Grade | Notes |
-|-----|----------|-----------|--------|-------|-------|
-| 1   | ☐        | ☐         | ☐      | —     |       |
-
-## Reflections
-
-<!-- Add notes here as you go: what's easy, what's hard, what to replan -->
-```
-
-**Upsert `curricula/index.md`** (create if missing, else append entry):
-
-```markdown
----
-title: Curricula Index
-active: <slug>
----
-
-# Curricula
-
-| Slug | Goal | Status | Days done | Started |
-|------|------|--------|-----------|---------|
-| [[curricula/<slug>/plan\|<slug>]] | <goal> | active | 0/<N> | <YYYY-MM-DD> |
-```
-
-**Generate `.ics` schedule** (ask first: "Generate a calendar .ics file for daily reminders?"):
-If yes, write `curricula/<slug>/schedule.ics` with one VEVENT per day:
-- SUMMARY: `Day N: <topic> — <goal> curriculum`
-- DTSTART: today + (N-1) days at 08:00 local
-- DURATION: time_budget hours
-- DESCRIPTION: `obsidian://open?vault=llm-wiki-memory&file=curricula/<slug>/day-<NN>-concepts`
+If **Skip**: continue to A5. Remind user they can run `/curriculum ics` later to generate it retroactively.
 
 ### A5. Check for prerequisite overlaps
 
@@ -230,7 +114,7 @@ After writing the plan, read `curricula/index.md`. For any other curricula liste
 
 Show the user:
 - Phase map (Mermaid text)
-- Day-by-day table (first 7 rows + "... N more days")
+- Day-by-day table (first 7 rows + "... N more days") — include the `day_label` / Topic column so labels are visible before generation
 - Capstone description
 - Count of vault notes reused (saves X days of generation)
 
@@ -248,278 +132,89 @@ Ask: "Generate day 1 now, or save the plan and stop here?"
 
 ### B1. Per-day research (targeted)
 
-Before generating, run targeted refresh for this day's topics:
-- `WebSearch "<day topic> <goal> tutorial 2026"` 
-- `context7` query for any library used in today's practical
-This keeps each day current, not frozen at plan-creation time.
+Derive `<YEAR>` from today's date (available in the session context) before running searches. Do not hardcode a year.
 
-### B2. Write concept note(s) for day `<NN>`
+Before generating, run all of the following in parallel:
+
+**B1a. Topic refresh:**
+- `WebSearch "<day topic> <goal> tutorial <YEAR>"`
+- `WebSearch "<day topic> best practices <YEAR>"`
+
+**B1b. Library version lookup — for every library this day's practical will use:**
+- `WebSearch "latest stable <library> version <YEAR> pypi"` — cross-check against PyPI release page
+- `mcp__plugin_context7_context7__resolve-library-id` + `mcp__plugin_context7_context7__query-docs` for the resolved library — pull changelog / migration guide so deprecated APIs are avoided
+- If a newer major version exists (e.g. library was on v1.x at plan time, v2.x is now stable), **use the new version** and note the upgrade in a `> [!note]` callout at the top of the practical
+
+**B1c. Alternative technology check:**
+- `WebSearch "best library for <task> python <YEAR>"` — if a better-maintained or more widely adopted alternative has emerged since the plan was written, flag it to the user and ask whether to swap before generating
+
+Pin every dependency in `day-NN/practical.md` to the **latest stable version confirmed in B1b**, not the version from plan-creation time.
+
+### B2. Write concept note(s) for `day-<NN>/`
+
+Create folder `curricula/<slug>/day-<NN>/` first (shell: `mkdir -p`). Write all day files inside it.
 
 #### B2a. Apply the split heuristic (deterministic)
 
 Derive this day's concept set from the plan's "Key concepts" column for day N:
 
-- **1 concept → 1 note:** write `day-<NN>-concepts.md` (original behavior, fully backward-compatible).
-- **2–3 concepts → N notes:** write `day-<NN>-concepts-01-<topic-slug>.md`, `day-<NN>-concepts-02-<topic-slug>.md`, … — one atomic note per distinct concept, each fully self-contained (own declarative title, own diagram, own worked example, own when-not-to-use, own recall prompts). Do **not** also write a `day-<NN>-concepts.md`; the numbered notes are the concepts for this day. Use a short kebab-case slug for each topic (e.g. `day-07-concepts-01-attention-mechanism.md`).
+- **1 concept → 1 note:** write `concepts.md` (original behavior, fully backward-compatible).
+- **2–3 concepts → N notes:** write `concepts-01-<topic-slug>.md`, `concepts-02-<topic-slug>.md`, … — one atomic note per distinct concept, each fully self-contained (own declarative title, own diagram, own worked example, own when-not-to-use, own recall prompts). Do **not** also write a `concepts.md`; the numbered notes are the concepts for this day. Use a short kebab-case slug for each topic (e.g. `concepts-01-attention-mechanism.md`).
 - **>3 concepts in plan → warn + cap:** add a `> [!warning]` callout at the top of the first generated concept note: "Day <N> has >3 atomic concepts assigned in the plan. Only the first 3 are generated here — run `/curriculum replan` to redistribute the remaining concepts into adjacent days." Generate at most 3 concept notes.
-- Set `needs_split: true` on any note that still covers more than one coherent concept. Otherwise `needs_split: false`.
+- Set `needs_split: true` on any note that, despite best effort, still covers more than one coherent concept (for a later `/uplift` or `/lint` pass). Otherwise `needs_split: false`.
 
 **Within-day cross-linking for multi-note days:**
-- Each `day-<NN>-concepts-0K` note's `## See also` links to adjacent notes: `concepts-0(K-1)` and `concepts-0(K+1)` within the same day.
-- `day-<NN>-concepts-01` also links back to the previous day's last concept file; the last concept note links forward to next day's first concept file.
-- `practical.md` and `review.md` `prerequisites:` list **all** this day's concept files (e.g. `["[[curricula/<slug>/day-<NN>-concepts-01-<slug>]]", "[[curricula/<slug>/day-<NN>-concepts-02-<slug>]]"]`).
+- Each `concepts-0K` note's `## See also` links to the adjacent notes within the same day: `concepts-0(K-1)` and `concepts-0(K+1)`.
+- `concepts-01` also links back to the previous day's last concept file; the last concept note also links forward to next day's first concept file.
+- `practical.md` and `review.md` `prerequisites:` list **all** this day's concept files (e.g. `["[[curricula/<slug>/day-<NN>/concepts-01-<slug>]]", "[[curricula/<slug>/day-<NN>/concepts-02-<slug>]]"]`).
 
 #### B2b. Write each concept note
 
-Type: `learning` (Concept). Must pass Universal U1–U7 + Concept add-ons per Quality Rubric v3. Apply the template below **once per concept note** (filename is `day-<NN>-concepts.md` for single-concept days, `day-<NN>-concepts-0N-<topic-slug>.md` for multi-concept days).
+Type: `learning` (Concept). Must pass Universal U1–U7 + Concept add-ons per Quality Rubric v3 (checks L1–L14). Apply the template once per concept note (filename is `concepts.md` for single-concept days, `concepts-0N-<topic-slug>.md` for multi-concept days).
 
-```markdown
----
-title: "Day <N>: <declarative-claim-about-topic>"
-created: <YYYY-MM-DD>
-updated: <YYYY-MM-DD>
-last_verified: <YYYY-MM-DD>
-confidence: medium
-provenance: generated+web
-type: learning
-maturity: seedling
-needs_split: false
-tags: [curriculum/<slug>, day-<NN>, <topic-tags>]
-curriculum: "[[curricula/<slug>/plan]]"
-day: <N>
-phase: <foundations|core|advanced|capstone>
-prerequisites: ["[[curricula/<slug>/day-<NN-1>-concepts]]"]
-related: []
-source: <primary source URL>
----
+> **Depth vs. atomicity:** The enriched template adds depth **within** one atomic concept. It does NOT relax U3. If writing any section reveals a second coherent idea, stop — split per B2a first, then complete both notes separately.
 
-# Day <N>: <declarative title — states a claim, not just a noun>
+**Read** `{{SKILLS}}/curriculum/templates/concept-note.md` and fill every section for this concept. The template includes 14 required concept-note sections (L1–L14), including the four mastery-depth sections:
+- `## Why this exists (motivation)` — the problem it was invented to solve and what came before
+- `## Cost & complexity` — time/space/compute cost with real figures (or practical overhead for non-quantitative concepts)
+- `## Edge cases & boundary conditions` — where the concept itself breaks down (distinct from runtime errors in practical)
+- `## Variations & extensions` — named variants and frontier extensions, one line each
 
-> [!tldr]
-> Line 1: Core idea in one sentence (written in own words, not copy-pasted).
-> Line 2: Why it matters for <goal>.
-> Line 3: What you can do after today.
+At least one of the 4–5 Recall prompts must be drawn from these depth sections (cost bound, a specific edge case, or a named variant and its trade-off).
 
-## <Section per concept>
+### B3. Write `day-<NN>/practical.md`
 
-Explanation using concrete numbers. Never vague.
+Type: `cookbook` (Procedure). Must pass Universal U1–U7 + Cookbook add-ons per Quality Rubric v3 (checks C1–C6).
 
-> [!example]
-> Worked example with real numbers / real code output.
-> Never use placeholder values like `<your_value>`.
+**Read** `{{SKILLS}}/curriculum/templates/practical.md` and fill every section. Write to `curricula/<slug>/day-<NN>/practical.md`.
 
-## Why does this work?
+### B4. Write `day-<NN>/review.md`
 
-Mechanistic explanation — the underlying reason, not just what it does.
+Type: `reference` (lookup/quiz). Must pass Universal U1–U7 + Reference add-ons per Quality Rubric v3 (checks R1–R3).
 
-## Diagram
+**Read** `{{SKILLS}}/curriculum/templates/review.md` and fill every section. Write to `curricula/<slug>/day-<NN>/review.md`.
 
-```mermaid
-<!-- process/architecture/flow diagram -->
-```
-
-## When NOT to use this
-
-- Anti-pattern 1 (specific condition)
-- Anti-pattern 2 (specific condition)
-
-## See also
-
-- [[curricula/<slug>/day-<NN-1>-concepts]] — prior day
-- [[curricula/<slug>/day-<NN+1>-concepts]] — next day
-- [[<vault-note>]] — related vault concept
-
-## Recall prompts
-
-> [!question] <One specific retrievable fact from today's concepts>
-
-> [!answer]- <Concrete, specific answer — no vague generalities>
-
-> [!question] When would you NOT use <X covered today>?
-
-> [!answer]- <Specific anti-pattern with concrete condition>
-
-> [!question] <Third prompt — mechanism or trade-off question>
-
-> [!answer]- <Answer>
-```
-
-### B3. Write `day-<NN>-practical.md`
-
-Type: `cookbook` (Procedure). Must pass Universal U1–U7 + Cookbook add-ons per Quality Rubric v3.
-
-```markdown
----
-title: "Day <N>: Build <concrete artifact> using <technique>"
-created: <YYYY-MM-DD>
-updated: <YYYY-MM-DD>
-last_verified: <YYYY-MM-DD>
-confidence: medium
-provenance: generated+web
-type: cookbook
-maturity: seedling
-needs_split: false
-tags: [curriculum/<slug>, day-<NN>, practical, <topic-tags>]
-curriculum: "[[curricula/<slug>/plan]]"
-day: <N>
-prerequisites: ["[[curricula/<slug>/day-<NN>-concepts]]"]
-related: []
-source: <dataset/library URL>
 ---
 
-# Day <N>: <topic> — Practical
+### B5. Quality self-check
 
-**Objective:** By the end of this practical you will have built `<concrete artifact>`.
+Before updating progress, score each generated file against **Quality Rubric v3** (defined in `CLAUDE.md`). This mirrors what `/lint` would flag — run it here so the day is correct from the start.
 
-## Setup
+**Read** `{{SKILLS}}/curriculum/templates/quality-rubric.md` for the full check tables (U1–U7 + L1–L14 for concepts, C1–C6 for practical, R1–R3 for review). Score each file in turn, printing a PASS / FAIL line per criterion. For any FAIL, regenerate the missing/failing section inline before proceeding to B6. If all PASS, print `✓ Day <N> quality check passed` and continue to B6.
 
-**Dataset:**
-<!-- Prefer public: HuggingFace, Kaggle, sklearn built-ins, UCI.
-     If none fits, generate fabricated data with a documented schema. -->
-
-```python
-# tested: <lib>==<version>
-# How to get/generate the dataset
-```
-
-**Dependencies:**
-
-```
-# tested: <lib>==<version>
-pip install <packages>
-```
-
-## Step 1 — <name>
-
-What you're doing and why.
-
-```python
-# tested: <lib>==<version>
-<code>
-```
-
-**Expected output:**
-```
-<actual expected output — not a placeholder>
-```
-
-## Step 2 — ...
-
-...
-
-## Checkpoint
-
-Run this to verify your work so far:
-
-```python
-# tested: <lib>==<version>
-<assertion or sanity check>
-```
-
-## Stretch goals
-
-1. <harder extension>
-2. <harder extension>
-
-## What can go wrong
-
-| Error / symptom | Cause | Fix |
-|----------------|-------|-----|
-| ...             | ...   | ... |
-
-## See also
-
-- [[curricula/<slug>/day-<NN>-concepts]] — today's concepts
-- [[curricula/<slug>/day-<NN>-review]] — today's review
-
-## Recall prompts
-
-> [!question] What is the exact command / function call to <key step in this practical>?
-
-> [!answer]- <concrete answer with version-pinned syntax>
-
-> [!question] What breaks if you skip <critical step>?
-
-> [!answer]- <specific failure mode>
-```
-
-### B4. Write `day-<NN>-review.md`
-
-Type: `reference` (lookup/quiz). Must pass Universal U1–U7 + Reference add-ons per Quality Rubric v3.
-
-```markdown
----
-title: "Day <N>: <topic> — Self-check and spaced repetition"
-created: <YYYY-MM-DD>
-updated: <YYYY-MM-DD>
-last_verified: <YYYY-MM-DD>
-confidence: medium
-provenance: generated
-type: reference
-maturity: seedling
-tags: [curriculum/<slug>, day-<NN>, review]
-curriculum: "[[curricula/<slug>/plan]]"
-day: <N>
-prerequisites: ["[[curricula/<slug>/day-<NN>-concepts]]", "[[curricula/<slug>/day-<NN>-practical]]"]
-related: []
-source: ""
 ---
 
-# Day <N>: <topic> — Self-check and spaced repetition
-
-> [!tldr]
-> Line 1: What today covered.
-> Line 2: Key idea to retain.
-> Line 3: How to judge if you understood it.
-
-## Self-check questions
-
-| # | Question | Answer |
-|---|----------|--------|
-| 1 | ... | ... |
-| 2 | ... | ... |
-
-(5–10 rows; enough to cover every major concept from today)
-
-## Recall prompts
-
-> [!question] <Most important retrievable fact from today>
-
-> [!answer]- <Specific, concrete answer>
-
-> [!question] <Second key question — mechanism or when-not-to-use>
-
-> [!answer]- <Answer>
-
-> [!question] <Third question — connection to prior material>
-
-> [!answer]- <Answer>
-
-## Reflection
-
-- What surprised you most today?
-- What concept is still fuzzy?
-- How does today's material connect to what came before?
-- In two sentences, explain today's topic as if to a junior colleague.
-
-## See also
-
-- [[curricula/<slug>/day-<NN>-concepts]] — today's concepts
-- [[curricula/<slug>/day-<NN>-practical]] — today's practical
-- [[curricula/<slug>/day-<NN+1>-concepts]] — next day
-```
-
-### B5. Update progress and log
+### B6. Update progress and log
 
 **Update `curricula/<slug>/progress.md`:**
-- Tick Concepts = ✓, mark Practical and Review as ☐ (user completes those)
+- Tick Concepts = ✓, fill Title cell with `day_label`, mark Practical and Review as ☐ (user completes those)
 - Update `active_day` frontmatter to N
 
 **Append to `wiki/log.md`:**
 ```
 ## [YYYY-MM-DD] curriculum | <slug> day <N>
-- Topic: <topic>
-- Files: day-<NN>-concepts*.md (<N> concept note(s)) · day-<NN>-practical.md · day-<NN>-review.md
+- Topic: <day_label>
+- Files: day-<NN>/concepts*.md (<N> concept note(s)) · day-<NN>/practical.md · day-<NN>/review.md
 - Research: <sources used>
 ```
 
@@ -545,7 +240,7 @@ Mark active curriculum with ★.
 ## FLOW D — `/curriculum audit <slug>`
 
 1. Read `curricula/<slug>/plan.md` — extract every concept from the concept tree (all bullet points not marked with `[[link]]`)
-2. Glob `curricula/<slug>/day-*-concepts*.md` — extract H2 section headings from each file (covers both single-note `day-NN-concepts.md` and multi-note `day-NN-concepts-01-*.md` … `day-NN-concepts-0N-*.md`)
+2. Glob `curricula/<slug>/day-*/concepts*.md` — extract H2 section headings from each file (covers both single-note `concepts.md` and multi-note `concepts-01-*.md` … `concepts-0N-*.md`)
 3. Diff: concepts promised in plan vs concepts found in generated files
 4. Output a coverage report:
 
@@ -555,8 +250,8 @@ Mark active curriculum with ★.
 ✓ 34 concepts covered
 ⚠ 8 concepts not yet generated (days 12–15 not created yet)
 ✗ 2 concepts missing from generated days:
-  - "attention masks" — promised in day 7 but not found in any day-07-concepts*.md
-  - "gradient checkpointing" — promised in day 11 but not found in any day-11-concepts*.md
+  - "attention masks" — promised in day 7 but not found in any day-07/concepts*.md
+  - "gradient checkpointing" — promised in day 11 but not found in any day-11/concepts*.md
 ```
 
 Offer to regenerate the flagged days.
@@ -578,16 +273,51 @@ Called when user has marked days as "too easy / too hard / skipped" in `progress
 
 ## FLOW F — `/curriculum grade <N>`
 
-1. Check if `curricula/<slug>/graders/day-<NN>-grader.py` exists
-2. If yes: `python curricula/<slug>/graders/day-<NN>-grader.py`
-3. Append result block to `day-<NN>-review.md`:
+### F1. Resolve slug and pad day
+
+Read `curricula/index.md` frontmatter `active:` for slug. Pad N: `nn = str(N).zfill(2)`.
+
+### F2. Check for hand-written grader
+
+If `curricula/<slug>/day-<nn>/grader.py` exists → go to F4 (run it directly).
+
+### F3. Auto-generate grader from Required outputs table
+
+Read `curricula/<slug>/day-<nn>/practical.md`. Parse the `## Required outputs` table — extract every row's file path and key requirements column.
+
+**Read** `{{SKILLS}}/curriculum/templates/grader-template.py`. Adapt the per-output blocks exactly to the rows in the `## Required outputs` table:
+- `.csv` → pandas shape + column presence + null checks
+- `.json` → key presence + type checks
+- `.pkl` → `pickle.load()` succeeds (no exception)
+- `.pt` → `torch.load()` succeeds
+- `.png` → existence check only
+
+Write the adapted script to `curricula/<slug>/day-<nn>/grader.py` via Bash (never Write tool for Python files).
+
+### F4. Run grader
+
+```
+python curricula/<slug>/day-<nn>/grader.py
+```
+
+Capture stdout + exit code.
+
+### F5. Append result to review file
+
+Append to `curricula/<slug>/day-<nn>/review.md`:
+
 ```markdown
 ## Grade result (auto)
 - Ran: <YYYY-MM-DD>
 - Result: PASS / FAIL
-- Details: <grader output>
+- Checks: <N> passed, <M> failed
+- Details:
+  <grader stdout, indented>
 ```
-4. If no grader exists: generate one from the practical's "Expected output" blocks — write assertions for each checkpoint.
+
+### F6. Update progress.md
+
+In the `| <N> | ... | Grade |` column of `progress.md`, set the Grade cell to `PASS` or `FAIL`.
 
 ---
 
@@ -621,7 +351,7 @@ No personal `progress.md` content is included.
 2. Read `curricula/<slug>/plan.md` frontmatter `created:` + time_budget days
 3. Compute target day = `(today - created).days + 1`
 4. Check `progress.md` — is this day generated?
-   - If yes: "Today is day N: <topic>. Files ready: [[day-NN-concepts]] (or [[day-NN-concepts-01-<slug>]] … for multi-note days) · [[day-NN-practical]] · [[day-NN-review]]"
+   - If yes: "Today is day N: <topic>. Files ready: [[day-NN/concepts]] (or [[day-NN/concepts-01-<slug>]] … for multi-note days) · [[day-NN/practical]] · [[day-NN/review]]"
    - If no: "Today is day N: <topic>. Generating now..." → run Flow B for day N
 
 ---
@@ -632,19 +362,114 @@ Update `curricula/index.md` frontmatter `active:` to `<slug>`. Confirm: "Active 
 
 ---
 
+## FLOW K — `/curriculum ics [<slug>]`
+
+Generate or regenerate `schedule.ics` for any curriculum (retroactive fix if skipped during setup).
+
+1. Resolve slug: if `<slug>` provided, use it; else read `curricula/index.md` frontmatter `active:`
+2. Read `curricula/<slug>/plan.md` — extract `created:` date, `time_budget:` (parse minutes), and the **Topic (day_label)** column from the day-by-day table (one `day_label` per row)
+3. Read `{{SKILLS}}/curriculum/templates/ics-generator.py`, substitute the variables (slug, start date, topics list, duration_min, vault path), write the filled-in script to a temp file, and run via Bash
+4. Confirm: "Written N events to `curricula/<slug>/schedule.ics`. Import into Google Calendar / Outlook / Apple Calendar."
+
+---
+
+## FLOW L — `/curriculum done <N>`
+
+Quiz the user on day N's recall prompts via self-assessment, then archive the three day files to `done/` on pass.
+
+### L1. Resolve slug and day
+
+- Read `curricula/index.md` frontmatter `active:` for slug (or infer from context)
+- Pad N to two digits: `nn = str(N).zfill(2)`
+- Confirm folder exists: `curricula/<slug>/day-<nn>/` with `concepts.md`, `practical.md`, `review.md` inside
+
+### L2. Extract recall prompts
+
+Read `curricula/<slug>/day-<nn>/review.md`. Extract every `> [!question]` block — the text on the same line after `> [!question]`. Collect up to 5 questions. Also collect the matching `> [!answer]-` lines for scoring reference (shown after user self-rates).
+
+### L3. Quiz via AskUserQuestion
+
+Call `AskUserQuestion` with a single question. Format the question field to show all recall questions numbered:
+
+```
+Day N recall quiz — answer each in your head, THEN self-rate below.
+
+1. <question 1 text>
+
+2. <question 2 text>
+
+3. <question 3 text>
+
+(answers will be revealed after you choose)
+```
+
+Options:
+- **"Nailed it — archive day N"** — got all or nearly all right; move files to done/
+- **"Got most — archive anyway"** — got 2/3+ right; archive with a note
+- **"Need more review"** — not confident yet; leave files in place
+
+### L4. Reveal answers
+
+After the user selects, print the answers from the `> [!answer]-` blocks so they can verify their self-assessment:
+
+```
+Answers:
+1. <answer 1>
+2. <answer 2>
+3. <answer 3>
+```
+
+### L5. Archive (if "Nailed it" or "Got most")
+
+1. Create `curricula/<slug>/done/` directory if it doesn't exist — use shell: `mkdir -p curricula/<slug>/done`
+2. Move the entire day folder via shell (never Write tool):
+   On Windows use PowerShell: `Move-Item curricula/<slug>/day-<nn> curricula/<slug>/done/day-<nn>`
+3. Tick all three checkboxes in `curricula/<slug>/progress.md` for day N:
+   - Change `| N | <day_label> | ☐ | ☐ | ☐ |` → `| N | <day_label> | ✓ | ✓ | ✓ |`
+   - If "Got most" add a note in the Notes column: `partial`
+4. Recompute done-day count and update `curricula/index.md`:
+   - Read `curricula/<slug>/progress.md` and count rows where all three checkboxes are ✓
+   - In `curricula/index.md`, find the row for `<slug>` and update the `Progress` cell (e.g. `3/75 days`)
+5. Append to `wiki/log.md`:
+   ```
+   ## [YYYY-MM-DD] curriculum | <slug> day N done
+   - Archived: day-<nn>/ → done/day-<nn>/
+   - Quiz result: <nailed it | got most>
+   ```
+6. Confirm: "Day N archived to `curricula/<slug>/done/day-<nn>/`. Progress updated (Concepts ✓ Practical ✓ Review ✓). Index: <new count>/<total> days."
+
+### L6. Skip archive (if "Need more review")
+
+- Do NOT move any files or tick any checkboxes
+- Report: "Day N not archived. Revisit `[[curricula/<slug>/day-<nn>/review]]` and run `/curriculum done N` again when ready."
+
+---
+
 ## Behavior rules (always apply)
 
 1. **Anonymization** — never mention employer name in any generated file; use "our platform" / "our workload"
-2. **No difficulty folders** — all days flat in `<slug>/`; level via frontmatter `phase:` field only. Each day has 1–3 atomic concept notes (`day-NN-concepts*.md` — see B2a), one practical, and one review
+2. **Day folders** — each day lives in its own `<slug>/day-<NN>/` folder containing `concepts*.md` (1–3 atomic concept notes per day — see B2a), `practical.md`, `review.md`, `grader.py`, and `outputs/`; never flat files at the slug root
 3. **Examples are concrete** — real numbers, real library names, real dataset rows; never `<placeholder>` or `<your_value>`
-4. **Version-pin all code** — every code block starts with `# tested: lib==version`
-5. **Quality Rubric v3** — apply U1–U7 universally + type-specific add-ons per note `type:`:
-   - `day-NN-concepts*.md` (**each** atomic concept note) → type `learning`: U1–U7 + diagram + "Why does this work?" + when-not-to-use + recall prompts
-   - `day-NN-practical.md` → type `cookbook`: U1–U7 + version-pinned code + what-can-go-wrong + prerequisite wikilink + recall prompts
-   - `day-NN-review.md` → type `reference`: U1–U7 + structured table + see-also wikilinks + recall prompts
+4. **Version-pin all code with latest stable versions** — every code block starts with `# tested: lib==version`; versions must be the latest stable release confirmed via B1b at day-generation time, not whatever was current at plan-creation time; never copy version pins from a prior day without re-checking
+5. **Quality Rubric v3** — apply U1–U7 universally + type-specific add-ons per note `type:`; verified by the B5 quality self-check (read `templates/quality-rubric.md`) before marking any day done:
+   - `day-NN/concepts*.md` (**each** atomic concept note) → type `learning`: U1–U7 + L1–L14:
+     - L1 Intuition (mental model), L2 Formal definition, L3 2+ Worked examples with real code + real output, L4 Why does this work?, L5 Mermaid diagram (use `<br/>` not `\n`), L6 Common misconceptions table, L7 Trade-offs vs alternatives table, L8 Sources ≥2 dated citations, L9 day_label verbatim in frontmatter, L10 confidence:high + level: set
+     - **L11 Why this exists (motivation)** — problem it was invented to solve; names predecessor + limitation
+     - **L12 Cost & complexity** — time/space/compute cost with real figures; O-notation where applicable
+     - **L13 Edge cases & boundary conditions** — where the concept itself breaks down; distinct from runtime errors
+     - **L14 Variations & extensions** — named variants and frontier extensions, one line each
+   - `day-NN/practical.md` → type `cookbook`: U1–U7 + version-pinned code (C1) + what-can-go-wrong table (C2) + prerequisite wikilink (C3) + Required outputs table with `day-<NN>-` filenames (C4) + checkpoint code (C5) + day_label verbatim (C6)
+   - `day-NN/review.md` → type `reference`: U1–U7 + self-check questions table 5–10 rows (R1) + see-also links to concepts/practical/next-day (R2) + day_label in frontmatter and H1 (R3)
    - All files get `maturity: seedling` on creation; user promotes to `budding`/`evergreen` as they revise
-6. **Recall prompts are mandatory** (U4) — every generated note gets 2–5 `> [!question]` / `> [!answer]-` pairs; this is the highest-evidence retention intervention
-7. **Declarative titles** (U1) — titles state a claim ("Transformers use self-attention to relate tokens at any distance"), not a noun ("Attention Mechanism")
+   - **Depth means depth WITHIN one atomic concept** — the enriched template does NOT relax U3 (one idea per note). If writing any section reveals a second coherent idea, split per B2a first.
+6. **Recall prompts are mandatory** (U4) — concept notes get 4–5 `> [!question]` / `> [!answer]-` pairs; **at least one must be drawn from L11–L14** (cost bound, edge case, or named variant); practical and review get 2+ pairs; this is the highest-evidence retention intervention
+7. **Declarative titles** (U1) — concept note H1 states a claim ("Transformers use self-attention to relate tokens at any distance"), not a noun ("Attention Mechanism"); practical and review H1s may use the `day_label` phrase
 8. **Re-research per day** — do not reuse stale day-1 research; run targeted search before each day generation
-9. **Shell for file ops** — any copy/move uses Bash `cp`/`mv`, never Write tool
+9. **Shell for file ops** — any copy/move uses Bash `cp`/`mv` or PowerShell `Move-Item`, never Write tool
 10. **Log every action** to `wiki/log.md`
+11. **Output filename consistency** — every output file name starts with `day-<NN>-` (e.g. `day-07-results.csv`). The `## Required outputs` table is the single source of truth — the save block, checkpoint, and grader (Flow F3) must reference the exact same filenames. Never generate a table entry and a code block that disagree.
+12. **Index always reflects done count** — Flow L5 (`/curriculum done`) must update `curricula/index.md` Progress column after archiving. Never leave the index showing a stale `0/N`.
+13. **Mermaid line breaks** — inside node labels always use `<br/>`, never `\n`. `\n` is a literal backslash-n in Mermaid and will not render as a line break.
+14. **Canonical `day_label`** — every day has a canonical short label (≤6 words) set in `plan.md`'s Topic column; reuse it verbatim in `progress.md` Title column, every note's `day_label:` frontmatter, and the `.ics` SUMMARY. Never reword it between files. The concept note H1 is a separate declarative claim derived from (but not identical to) the label.
+15. **Confidence is always `high`** — all curriculum notes default to `confidence: high`; do more research rather than lowering confidence. Never write `confidence: medium` or lower for generated curriculum files.
+16. **`level:` frontmatter on concept notes** — set `level: easy|moderate|advanced` on every `concepts*.md`; values interleaved across the curriculum (no difficulty folders), signalling difficulty for spaced-repetition and `/lint` scoring.

@@ -27,7 +27,7 @@ def strip_frontmatter(content: str) -> tuple[dict, str]:
 
 
 def collect_skills(repo_skills: Path, vault_tool: str, agent: str) -> list[dict]:
-    """Return list of {name, description, body} for all applicable skills."""
+    """Return list of {name, description, body, src_dir} for all applicable skills."""
     skills = []
 
     def _add_dir(skill_dir: Path) -> None:
@@ -45,6 +45,7 @@ def collect_skills(repo_skills: Path, vault_tool: str, agent: str) -> list[dict]
             "name": name,
             "description": meta.get("description", ""),
             "body": body,
+            "src_dir": skill_dir,  # used by install_per_file to copy sibling dirs (e.g. templates/)
         })
 
     core_dir = repo_skills / "core"
@@ -62,17 +63,33 @@ def collect_skills(repo_skills: Path, vault_tool: str, agent: str) -> list[dict]
 
 
 def install_per_file(skills: list[dict], dest_base: Path, agent: str) -> None:
-    """Write one file per skill with agent-appropriate frontmatter."""
+    """Write one file per skill with agent-appropriate frontmatter.
+
+    Also copies any sibling subdirectories from the source skill dir (e.g. templates/)
+    so that skills relying on external template files work after installation.
+    Note: install_combined (Gemini) does not receive template files — skills that
+    depend on templates/ will need to embed their content inline for Gemini.
+    """
     for skill in skills:
         name = skill["name"]
         desc = skill["description"]
         body = skill["body"]
+        src_dir: Path = skill.get("src_dir")
 
         if agent == "claude":
             d = dest_base / name
             d.mkdir(parents=True, exist_ok=True)
             fm = f"---\nname: {name}\ndescription: {desc}\n---\n\n"
             (d / "SKILL.md").write_text(fm + body, encoding="utf-8")
+
+            # Copy sibling subdirectories (e.g. templates/) from the source skill dir
+            if src_dir and src_dir.is_dir():
+                for entry in src_dir.iterdir():
+                    if entry.is_dir() and entry.name != "__pycache__":
+                        dest_sub = d / entry.name
+                        if dest_sub.exists():
+                            shutil.rmtree(dest_sub)
+                        shutil.copytree(entry, dest_sub)
 
 
 def install_combined(skills: list[dict], dest_file: Path, agent: str) -> None:
@@ -90,12 +107,25 @@ def install_combined(skills: list[dict], dest_file: Path, agent: str) -> None:
     dest_file.write_text("\n".join(lines), encoding="utf-8")
 
 
-def patch_placeholders(base: Path, vault_path: str, scripts_path: str, exts: tuple = ("*.md", "*.mdc")) -> None:
+def patch_placeholders(
+    base: Path,
+    vault_path: str,
+    scripts_path: str,
+    skills_path: str = "",
+    exts: tuple = ("*.md", "*.mdc", "*.py"),
+) -> None:
+    """Replace {{VAULT}}, {{SCRIPTS}}, and {{SKILLS}} placeholders in installed files.
+
+    Patches .md, .mdc, and .py files so that template Python scripts (e.g.
+    grader-template.py, ics-generator.py) also receive correct vault paths.
+    """
     for ext in exts:
         for f in base.rglob(ext):
             content = f.read_text(encoding="utf-8")
             content = content.replace("{{VAULT}}", vault_path)
             content = content.replace("{{SCRIPTS}}", scripts_path)
+            if skills_path:
+                content = content.replace("{{SKILLS}}", skills_path)
             f.write_text(content, encoding="utf-8")
 
 
@@ -179,9 +209,10 @@ def run_installation():
 
     (wiki_dest / ".vault_path").write_text(vault_path, encoding="utf-8")
 
-    # Patch placeholders
+    # Patch placeholders — {{VAULT}}, {{SCRIPTS}}, {{SKILLS}} resolved across all .md/.mdc/.py files
     scripts_path = wiki_dest.as_posix()
-    patch_placeholders(dest_base, vault_path, scripts_path)
+    skills_path = dest_base.as_posix()
+    patch_placeholders(dest_base, vault_path, scripts_path, skills_path)
 
     # Global context injection
     if is_global:
