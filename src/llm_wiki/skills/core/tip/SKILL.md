@@ -1,6 +1,6 @@
 ---
 name: tip
-description: Write today's 2 "notes of the day" — pick two fresh, timely, non-duplicate topics (either from the tracked AI/LLM space — Claude/Claude Code workflow, LangGraph, LangChain, Google ADK, RAG, agents, vector DBs, new model/framework releases — or from whatever the vault's learning/ tree shows the user is actually studying, e.g. Python asyncio internals, new stdlib features, notable PEPs), research each, and file rubric-compliant notes into tips/ at the vault root. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
+description: Write today's "note of the day" — pick two fresh, timely, non-duplicate topics (either from the tracked AI/LLM space — Claude/Claude Code workflow, LangGraph, LangChain, Google ADK, RAG, agents, vector DBs, new model/framework releases — or from whatever the vault's learning/ tree shows the user is actually studying, e.g. Python asyncio internals, new stdlib features, notable PEPs), research each, and file one rubric-compliant note covering both into tips/ at the vault root. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
 ---
 
 Vault root: `{{VAULT}}/`
@@ -17,7 +17,7 @@ Vault root: `{{VAULT}}/`
 
 ## Tip mode (default)
 
-Generates **2 notes** per run, on two distinct topics.
+Generates **1 note** per run, covering two distinct topics.
 
 1. **See what's already covered.** Read `{{VAULT}}/tips/index.md`. If `{{VAULT}}/tips/`
    or `index.md` doesn't exist yet, this is the first run — treat it as "no topics covered
@@ -45,13 +45,13 @@ Generates **2 notes** per run, on two distinct topics.
      ```
      If the vault already has solid coverage, pick the next candidate.
 
-3. **Write one note per topic** → `{{VAULT}}/tips/<TODAY>-<slug>.md` (a distinct `<slug>` per
-   topic, e.g. `<TODAY>-langgraph-checkpointing.md` and `<TODAY>-asyncio-taskgroups.md`). Follow
-   `{{VAULT}}/SCHEMA.md` in full (required frontmatter + Typed Rubric U1–U7) for **each** note:
+3. **Write one note with both topics** → `{{VAULT}}/tips/<TODAY>-<slug1>-<slug2>.md`. Follow
+   `{{VAULT}}/SCHEMA.md` in full (required frontmatter + Typed Rubric U1–U7), repeating the body
+   sections once per topic under an `##` heading per topic:
 
    ```markdown
    ---
-   title: <Declarative title — Topic: Specific Claim (U1)>
+   title: <Declarative title covering both topics (U1)>
    created: <TODAY>
    updated: <TODAY>
    last_verified: <TODAY>
@@ -60,9 +60,10 @@ Generates **2 notes** per run, on two distinct topics.
    maturity: seedling
    tags:
    - tips
-   - <topic-tag>
+   - <topic-1-tag>
+   - <topic-2-tag>
    type: learning
-   source: <primary URL(s) found>
+   source: <primary URL(s) for both topics>
    related: []
    ---
 
@@ -71,11 +72,11 @@ Generates **2 notes** per run, on two distinct topics.
    > **Up:** [[tips/index]]
 
    > [!tldr]
-   > <2-3 lines, in your own words — what changed / what it is / why it matters>
+   > <2-3 lines covering both topics — what changed / what it is / why it matters>
 
    ---
 
-   ## What's New
+   ## Topic 1: <Topic 1 title>
 
    <!-- 3-5 sentences: the concrete update, release, or best-practice being covered -->
 
@@ -88,28 +89,39 @@ Generates **2 notes** per run, on two distinct topics.
    > <!-- required whenever the topic is a language/library: runnable code (not prose),
    >      concrete numbers, or a CLI command — no placeholders -->
 
-   ---
+   > [!question] <one specific retrievable fact>
 
-   ## When Not To Use / Anti-pattern
-
-   <!-- one concrete condition where this doesn't apply -->
+   > [!answer]- <concrete answer>
 
    ---
 
-   ## Recall prompts
+   ## Topic 2: <Topic 2 title>
+
+   <!-- 3-5 sentences: the concrete update, release, or best-practice being covered -->
+
+   ```mermaid
+   flowchart LR
+       A[Before] --> B[Change] --> C[After]
+   ```
+
+   > [!example] Worked example
+   > <!-- required whenever the topic is a language/library: runnable code (not prose),
+   >      concrete numbers, or a CLI command — no placeholders -->
 
    > [!question] <one specific retrievable fact>
 
    > [!answer]- <concrete answer>
 
-   > [!question] When would you NOT use this?
+   ---
 
-   > [!answer]- <specific anti-pattern>
+   ## When Not To Use / Anti-pattern
+
+   <!-- one concrete condition per topic where it doesn't apply -->
 
    ---
 
    ## See Also
-   <!-- 3-5 wikilinks -->
+   <!-- 3-5 wikilinks covering both topics -->
    ```
 
    Apply the vault's **anonymization rule** (no employer names) from `{{VAULT}}/CLAUDE.md`.
@@ -121,13 +133,12 @@ Generates **2 notes** per run, on two distinct topics.
      ```markdown
      ## Tips log
      ```
-   - Prepend one line per note under `## Tips log` (both today's notes):
+   - Prepend one line under `## Tips log`:
      ```
-     - <TODAY> — [[tips/<TODAY>-<slug>|<Title>]]
-     - <TODAY> — [[tips/<TODAY>-<slug-2>|<Title 2>]]
+     - <TODAY> — [[tips/<TODAY>-<slug1>-<slug2>|<Title>]]
      ```
 
-5. → **[Wiki Update]** (below), once per note.
+5. → **[Wiki Update]** (below).
 
 ---
 
@@ -152,8 +163,7 @@ tips into one roundup note.
 
 ## Wiki Update (runs after every mode)
 
-Same as `/ingest`'s Wiki Update tail. In Tip mode, run this once per note written
-(twice total for the day's 2 notes):
+Same as `/ingest`'s Wiki Update tail:
 
 1. ```
    python {{SCRIPTS}}/search.py "<new note tags and title keywords>" --top 8
