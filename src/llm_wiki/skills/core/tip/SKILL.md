@@ -78,7 +78,7 @@ Generates **1 note** per run, covering two distinct topics.
      still be distinct from each other and from the last ~30 days.
    - Dedup check (run once per candidate topic):
      ```
-     python c:/Users/rushi/.claude/skills/_wiki/search.py "<candidate topic>" --top 5
+     python {{SCRIPTS}}/search.py "<candidate topic>" --top 5
      ```
      If the vault already has solid coverage, pick the next candidate.
 
@@ -203,7 +203,7 @@ tips into one roundup note.
 Same as `/ingest`'s Wiki Update tail:
 
 1. ```
-   python c:/Users/rushi/.claude/skills/_wiki/search.py "<new note tags and title keywords>" --top 8
+   python {{SCRIPTS}}/search.py "<new note tags and title keywords>" --top 8
    ```
    Cross-link the top matches under the note's `## See Also`.
 2. Add an entry to `wiki/index.md`:
@@ -219,10 +219,10 @@ Same as `/ingest`'s Wiki Update tail:
    ```
 4. Update search indexes:
    ```
-   python c:/Users/rushi/.claude/skills/_wiki/build_graph.py --update tips/<file>.md
-   python c:/Users/rushi/.claude/skills/_wiki/build_routing.py --update tips/<file>.md
-   python c:/Users/rushi/.claude/skills/_wiki/build_index.py --update tips/<file>.md
-   python c:/Users/rushi/.claude/skills/_wiki/build_embeddings.py --update tips/<file>.md
+   python {{SCRIPTS}}/build_graph.py --update tips/<file>.md
+   python {{SCRIPTS}}/build_routing.py --update tips/<file>.md
+   python {{SCRIPTS}}/build_index.py --update tips/<file>.md
+   python {{SCRIPTS}}/build_embeddings.py --update tips/<file>.md
    ```
    If scripts aren't found or `wiki/graph.json` doesn't exist, skip — the next `/daily` will
    nudge a full `/graphbuild` instead (this keeps unattended cron runs from failing on a
