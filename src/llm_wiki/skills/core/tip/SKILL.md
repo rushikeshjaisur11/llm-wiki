@@ -24,6 +24,11 @@ Generates **1 note** per run, covering two distinct topics.
    context date). Use this exact value everywhere `<TODAY>` appears below (filename,
    frontmatter, index entry).
 
+1b. **Skip if today is already covered.** Check whether `{{VAULT}}/tips/<TODAY>-*.md`
+   already exists (glob, any suffix). If it does, a tip already landed for today (e.g. from an
+   earlier manual run) — stop here, do not research or write anything, and report this as a
+   no-op. Do not overwrite or duplicate it.
+
 2. **See what's already covered.** Read `{{VAULT}}/tips/index.md`. If `{{VAULT}}/tips/`
    or `index.md` doesn't exist yet, this is the first run — treat it as "no topics covered
    yet" and continue (the folder and index get created in step 4, not as an error). Note the
