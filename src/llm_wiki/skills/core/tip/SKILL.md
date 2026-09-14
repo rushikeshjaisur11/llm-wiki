@@ -29,6 +29,16 @@ Generates **1 note** per run, covering two distinct topics.
    earlier manual run) — stop here, do not research or write anything, and report this as a
    no-op. Do not overwrite or duplicate it.
 
+1c. **Archive tips older than 7 days.** Scan `{{VAULT}}/tips/*.md` (top-level files only,
+   not `weekly/` or `archive/`) for filenames dated more than 7 days before `<TODAY>`. If
+   `{{VAULT}}/tips/` doesn't exist yet, skip this step. For each stale file:
+   - `git mv {{VAULT}}/tips/<file>.md {{VAULT}}/tips/archive/<file>.md`
+     (create `tips/archive/` first if missing).
+   - In `tips/index.md`, move its `## Tips log` line into an `## Archive` section at the
+     bottom (create if missing), rewriting the wikilink target to `tips/archive/<file>`.
+   Skip a file already under `tips/archive/`. This keeps `tips/` holding only the trailing
+   7-day window while preserving full history and cross-links.
+
 2. **See what's already covered.** Read `{{VAULT}}/tips/index.md`. If `{{VAULT}}/tips/`
    or `index.md` doesn't exist yet, this is the first run — treat it as "no topics covered
    yet" and continue (the folder and index get created in step 4, not as an error). Note the
@@ -36,16 +46,19 @@ Generates **1 note** per run, covering two distinct topics.
 
 3. **Pick two fresh, distinct topics.**
    - If a topic hint was given as an argument, that's topic 1; auto-pick topic 2 (below).
-   - Otherwise survey two candidate spaces and pick one topic from each, for variety:
-     1. **What the user is actually learning** — scan *all* top-level domains under
-        `{{VAULT}}/learning/` (`ai`, `data-eng`, `data-science`, `dev-tools`, `python`, `fastapi`,
-        `foundations/dsa`, `foundations/ml`, `systems-design`, etc.) and rotate across them —
-        don't default to `ai` just because it's listed first; check which domain hasn't had a
-        tip in the last ~30 days and prefer it. E.g. a `learning/python/` folder is a signal to
-        look for new or interesting Python concepts (`asyncio` internals, new stdlib features,
-        notable PEPs); a `learning/data-eng/` folder signals Kafka/Spark/dbt/Airflow updates;
-        `learning/systems-design/` signals distributed-systems concepts. Prefer topics that go a
-        level deeper than what's already there instead of restating existing notes.
+   - Otherwise survey three candidate spaces and pick one topic from two of them, for variety
+     (rotate which two so all three get used over time):
+     1. **What the user is actually learning (from the KB itself)** — scan *all* top-level
+        domains under `{{VAULT}}/learning/` (`ai`, `data-eng`, `data-science`, `dev-tools`,
+        `python`, `fastapi`, `foundations/dsa`, `foundations/ml`, `systems-design`, etc.) and
+        rotate across them — don't default to `ai` just because it's listed first; check which
+        domain hasn't had a tip in the last ~30 days and prefer it. E.g. a `learning/python/`
+        folder is a signal to look for new or interesting Python concepts (`asyncio` internals,
+        new stdlib features, notable PEPs); a `learning/data-eng/` folder signals
+        Kafka/Spark/dbt/Airflow updates; `learning/systems-design/` signals distributed-systems
+        concepts. Prefer topics that go a level deeper than what's already there, or that fill a
+        gap the KB's `wiki/graph.json` / `index.md` shows as thin, instead of restating existing
+        notes.
      2. **Notable/new in broader tech** — `WebSearch` for what's genuinely new or notable in the
         last ~2 weeks, sampling broadly across tech/CS rather than defaulting to AI: databases,
         distributed systems, Python/language releases, dev-tooling, cloud platforms, security,
@@ -53,8 +66,16 @@ Generates **1 note** per run, covering two distinct topics.
         agents, vector DBs, model/framework releases) as one topic area among these, not the
         default. Prefer primary sources (official docs/blogs/release notes) over aggregator
         summaries.
-     If only one space has a solid candidate, pick both topics from it — they must still be
-     distinct from each other and from the last ~30 days.
+     3. **New open-source tools** — `WebSearch` for open-source tools/libraries/projects that
+        launched or hit a notable milestone (new repo, v1.0, major release, GitHub trending) in
+        the last ~2-4 weeks — e.g. new AI-infra tools (OpenRouter-style routers/gateways),
+        dev-tooling, databases, CLI utilities — sampled broadly, not just AI. Prefer ones adjacent
+        to what's in `learning/` so it lands relevant. What it does, why it exists (what gap it
+        fills vs. incumbents), and how to try it (install/CLI/repo link). `WebSearch`/`WebFetch`
+        its own repo/README/release notes as the primary source, not aggregator roundups.
+     Pick topics from two *different* spaces when candidates exist in more than one; only
+     collapse to one space if the other two truly have nothing fresh this run — topics must
+     still be distinct from each other and from the last ~30 days.
    - Dedup check (run once per candidate topic):
      ```
      python c:/Users/rushi/.claude/skills/_wiki/search.py "<candidate topic>" --top 5
