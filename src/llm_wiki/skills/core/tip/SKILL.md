@@ -24,20 +24,21 @@ Generates **1 note** per run, covering two distinct topics.
    context date). Use this exact value everywhere `<TODAY>` appears below (filename,
    frontmatter, index entry).
 
-1b. **Skip if today is already covered.** Check whether `{{VAULT}}/tips/<TODAY>-*.md`
-   already exists (glob, any suffix). If it does, a tip already landed for today (e.g. from an
-   earlier manual run) — stop here, do not research or write anything, and report this as a
-   no-op. Do not overwrite or duplicate it.
-
-1c. **Archive tips older than 7 days.** Scan `{{VAULT}}/tips/*.md` (top-level files only,
-   not `weekly/` or `archive/`) for filenames dated more than 7 days before `<TODAY>`. If
-   `{{VAULT}}/tips/` doesn't exist yet, skip this step. For each stale file:
+1b. **Archive tips older than 7 days.** Runs unconditionally, before the skip check below —
+   housekeeping shouldn't depend on whether today already has a note. Scan `{{VAULT}}/tips/*.md`
+   (top-level files only, not `weekly/` or `archive/`) for filenames dated more than 7 days
+   before `<TODAY>`. If `{{VAULT}}/tips/` doesn't exist yet, skip this step. For each stale file:
    - `git mv {{VAULT}}/tips/<file>.md {{VAULT}}/tips/archive/<file>.md`
      (create `tips/archive/` first if missing).
    - In `tips/index.md`, move its `## Tips log` line into an `## Archive` section at the
      bottom (create if missing), rewriting the wikilink target to `tips/archive/<file>`.
    Skip a file already under `tips/archive/`. This keeps `tips/` holding only the trailing
    7-day window while preserving full history and cross-links.
+
+1c. **Skip if today is already covered.** Check whether `{{VAULT}}/tips/<TODAY>-*.md`
+   already exists (glob, any suffix). If it does, a tip already landed for today (e.g. from an
+   earlier manual run) — stop here, do not research or write anything, and report this as a
+   no-op. Do not overwrite or duplicate it.
 
 2. **See what's already covered.** Read `{{VAULT}}/tips/index.md`. If `{{VAULT}}/tips/`
    or `index.md` doesn't exist yet, this is the first run — treat it as "no topics covered
