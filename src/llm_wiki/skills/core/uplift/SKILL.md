@@ -7,7 +7,7 @@ description: Bulk-fix low-scoring vault notes. Generates missing quality-rubric 
 
 Vault root: `{{VAULT}}/`
 Quality rubric canonical source: `{{VAULT}}/SCHEMA.md` § Typed Rubric v3
-Gold-standard templates: `learning/langgraph/index.md`, `learning/langchain/01-*.md`, `learning/google-adk/index.md` (all 7/7)
+Gold-standard templates: `learning/ai/langgraph/index.md`, `learning/ai/langchain/01-*.md`, `learning/ai/google-adk/index.md` (all 7/7)
 
 ---
 
@@ -58,7 +58,7 @@ Gold-standard templates: `learning/langgraph/index.md`, `learning/langchain/01-*
 For each note in the work queue:
 
 ### 2a. Read the note
-Read the full note. Also read the highest-scoring note in the same folder (from lint data) as a structural reference. If folder has no 6+ note, use `learning/langgraph/index.md` as the gold template.
+Read the full note. Also read the highest-scoring note in the same folder (from lint data) as a structural reference. If folder has no 6+ note, use `learning/ai/langgraph/index.md` as the gold template.
 
 ### 2b. Generate only the missing fields
 

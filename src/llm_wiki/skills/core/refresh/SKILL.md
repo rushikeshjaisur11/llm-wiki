@@ -1,6 +1,6 @@
 ---
 name: refresh
-description: Re-verify a note against its canonical source URL, diff against current claims, propose updates, and bump last_verified. Use --queue [N] to surface the N most overdue notes (replaces /review). Usage - /refresh <note-path> | /refresh --queue [N]
+description: Re-verify a note against its canonical source URL, diff against current claims, propose updates, and bump last_verified. Use --queue [N] to surface the N most overdue notes. Usage - /refresh <note-path> | /refresh --queue [N]
 ---
 
 # Refresh — Re-verify a Note Against Its Source

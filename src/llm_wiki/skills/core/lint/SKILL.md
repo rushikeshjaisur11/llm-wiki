@@ -1,6 +1,6 @@
 ---
 name: lint
-description: Full vault health-check — scans for file system issues (misplaced files, junk, duplicates, unprocessed inbox) and wiki knowledge issues (orphan pages, broken wikilinks, concept stubs, contradictions). Add --quarterly for the full audit report (replaces /audit). Reports first, executes after confirmation.
+description: Full vault health-check — scans for file system issues (misplaced files, junk, duplicates, unprocessed inbox) and wiki knowledge issues (orphan pages, broken wikilinks, concept stubs, contradictions). Add --quarterly for the full audit report. Reports first, executes after confirmation.
 ---
 
 # Lint — Full Vault Health Check
@@ -22,8 +22,8 @@ Vault root: `{{VAULT}}/`
 ### File System Health
 
 **1a. Loose root files**
-List all files at vault root other than: `CLAUDE.md`, `SCHEMA.md`, `wiki/`, `learning/`, `research/`, `data-engineering/`, `projects/`, `personal/`, `archive/`, `attachments/`, `inbox/`, `daily/`.
-Flag any `.md` files at the root level — the only sanctioned root `.md` file is `CLAUDE.md`.
+List all files at vault root other than: `CLAUDE.md`, `SCHEMA.md`, `README.md`, `wiki/`, `learning/`, `research/`, `data-engineering/`, `projects/`, `personal/`, `archive/`, `attachments/`, `inbox/`, `daily/`, `curricula/`, `tips/`.
+Flag any other `.md` files at the root level.
 Note: `wiki/memory.md` is a sanctioned file (written by `/tldr`) — do NOT flag it.
 
 **1b. Unprocessed inbox/**
@@ -35,16 +35,10 @@ Files with same name but different casing or very similar names in the same fold
 **1d. Misplaced files**
 Check each file's content against folder rules:
 - `daily/` — must be dated `YYYY-MM-DD.md`; anything else is misplaced
-- `learning/` — study notes organized by technology subfolder; loose `.md` files directly in `learning/` (not in a subfolder) are misplaced
-  - `learning/python/` — Python language notes
-  - `learning/python/tooling/` — uv, ruff, pyproject.toml, etc.
-  - `learning/fastapi/` — FastAPI course (numbered 01-06) + `genai-services/` subfolder
-  - `learning/git/` — Git notes
-  - `learning/google-adk/` — Google ADK notes (concept files + production, evaluation, etc.)
+- `learning/` — study notes in the cluster layout from the vault `CLAUDE.md` § My Vault Structure (e.g. `learning/ai/langgraph/`, `learning/dev-tools/git/`); loose `.md` files directly in `learning/` other than `index.md` and `CONVENTIONS.md` are misplaced
 - `research/` — deep technical dives, papers, LLMs, agents
 - `data-engineering/` — GCP, Kafka, Airflow, BigQuery, pipelines
 - `projects/` — specific active project notes
-- `resources/` — bookmarks, links, tool references
 - `personal/` — non-work notes
 - `archive/` — completed/old work
 
@@ -54,10 +48,6 @@ Folders with 0 or 1 file — flag for review.
 **1f. Junk file types**
 `.pdf` anywhere outside `inbox/` or `sources/`, `.tmp`, `.bak`, `.DS_Store`, `desktop.ini`, `Thumbs.db`
 Image files (`.png .jpg .jpeg .gif .svg .webp`) are **not junk** when located under `attachments/`. Flag image files found outside `attachments/` (except `inbox/`) as misplaced — suggest moving them to `attachments/`.
-
-**1g. Scattered master summaries**
-Find all `MASTER_SUMMARY.md` and `master-summary*.md` files across `outputs/` and `archive/outputs/`.
-Plan: consolidate into a single `archive/outputs/master-summary.md` (one `## YYYY-MM-DD (Batch N)` section per original, with wikilinks to filed notes), then delete originals.
 
 ---
 
@@ -149,10 +139,10 @@ For each page, flag:
 - `date` field present instead of `created` (needs migration — run `migrate_frontmatter.py`)
 - Missing `type` field
 - `related` field completely absent (vs `related: []` which is fine)
-- Missing `last_verified` field (new requirement — default to `created` date)
-- Missing `confidence` field (new requirement)
-- Missing `provenance` field (new requirement)
-- Missing `maturity` field (new requirement — default to `seedling`)
+- Missing `last_verified` field (default to `created` date)
+- Missing `confidence` field
+- Missing `provenance` field
+- Missing `maturity` field (default to `seedling`)
 Summarise as: "N pages need frontmatter migration" with a suggestion to run `python {{SCRIPTS}}/migrate_frontmatter.py --write`
 
 **2e-ext3b. Maturity distribution**
@@ -241,7 +231,6 @@ Show the consolidated report before touching anything:
 **Duplicate files:** [pairs]
 **Empty folders:** [list or "none"]
 **Junk files:** [list or "none"]
-**Master summaries to consolidate:** [list]
 
 ### Wiki Health
 **Not in index (N pages):** [list]
@@ -277,7 +266,6 @@ Act on user approval:
 
 - **Move** misplaced files to correct folders (`mv`)
 - **Delete** junk files (`rm`)
-- **Consolidate** master summaries → `archive/outputs/master-summary.md` → delete originals
 - **Add** missing entries to `wiki/index.md`
 - **Fix** broken wikilinks (update path if renamed, remove if target never existed)
 - **Write** `wiki/lint-YYYY-MM-DD.md` with the full report

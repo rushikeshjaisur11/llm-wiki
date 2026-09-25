@@ -75,8 +75,8 @@ Low-confidence notes:
 Note | confidence | last_verified
 ```
 
-These are informational — no action taken. The user can use `/refresh <note>` or `/audit` to address them.
+These are informational — no action taken. The user can use `/refresh <note>` or `/lint --quarterly` to address them.
 
 ## Step 5: Offer next actions
 
-> Graph and search indexes rebuilt. Run `/graphbuild` again after more ingests, or use `python {{SCRIPTS}}/search.py "<query>"` to test search results. Run `/audit` for a full quarterly health report.
+> Graph and search indexes rebuilt. Run `/graphbuild` again after more ingests, or use `python {{SCRIPTS}}/search.py "<query>"` to test search results. Run `/lint --quarterly` for a full quarterly health report.

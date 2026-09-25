@@ -20,7 +20,7 @@ Summarize the top 3 priorities for today based on recent notes.
 
 **Staleness nudge (non-blocking):**
 Run a quick check: scan frontmatter of all files in `learning/` for `last_verified` > TTL (use TTL rules from `{{VAULT}}/SCHEMA.md`). Report only the top 3 most overdue notes as:
-> "3 notes may be stale: [[langgraph/state-and-reducers]] (90 days overdue), … Run `/refresh <note>` to re-verify, or `/audit` for a full report."
+> "3 notes may be stale: [[langgraph/state-and-reducers]] (90 days overdue), … Run `/refresh <note>` to re-verify, or `/lint --quarterly` for a full report."
 Keep this brief — it's a nudge, not a full lint.
 
 **Index reconcile nudge (non-blocking):**

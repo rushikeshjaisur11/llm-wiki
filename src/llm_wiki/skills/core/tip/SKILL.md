@@ -1,6 +1,6 @@
 ---
 name: tip
-description: Write today's "note of the day" — pick two fresh, timely, non-duplicate topics spanning a broad range of tech/CS domains (whatever the vault's learning/ tree shows the user is actually studying — ai, data-eng, data-science, dev-tools, python, fastapi, foundations/dsa+ml, systems-design — or notable new/broader-tech developments, with AI/LLM as just one of many spaces, e.g. Claude/Claude Code, LangGraph, databases, distributed systems, Python stdlib/PEPs, cloud, security), research each, and file one rubric-compliant note covering both into tips/ at the vault root. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
+description: Write today's "note of the day" — research two fresh, non-duplicate tech/CS topics (drawn from what the vault's learning/ tree shows is being studied, broader tech news, or new open-source tools) and file one rubric-compliant note into tips/. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
 ---
 
 Vault root: `{{VAULT}}/`

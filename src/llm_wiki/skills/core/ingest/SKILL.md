@@ -1,6 +1,6 @@
 ---
 name: ingest
-description: Add any source to the wiki — URL, file, batch folder, research topic, or study topic. Always ends with the note written, cross-links added, wiki/index.md updated, and wiki/log.md appended. Use for all knowledge ingestion. Replaces /research, /study, /file-intel, and /process-files.
+description: Add any source to the wiki — URL, file, batch folder, research topic, or study topic. Always ends with the note written, cross-links added, wiki/index.md updated, and wiki/log.md appended. Use for all knowledge ingestion.
 ---
 
 # Ingest — Add to Wiki
@@ -24,7 +24,7 @@ Apply the formatting rules for that tool throughout the note. If the line is mis
 
 ## Note Quality Standards
 
-Every note must score 7/7 on the Quality Rubric v2 (canonical in `CLAUDE.md` § Note-Writing Checklist). Apply these rendering rules based on vault tool:
+Every note must score 7/7 on the Quality Rubric v2 (canonical in `SCHEMA.md` § Quality Rubric v2; typed U1–U7 in § Typed Rubric v3). Apply these rendering rules based on vault tool:
 
 | Feature | Obsidian | Foam | Logseq | Plain MD |
 |---|---|---|---|---|

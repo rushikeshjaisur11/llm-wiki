@@ -52,20 +52,12 @@ Derive `<YEAR>` from today's date (available in the session context) before runn
 
 Fan out simultaneously:
 
-**A2a. WebSearch** (run all three queries in parallel):
-- `"<goal> curriculum <YEAR>"`
-- `"<goal> complete roadmap beginner to advanced"`
-- `"best resources to learn <goal> site:github.com OR site:reddit.com OR site:roadmap.sh"`
-
-Additionally search for authoritative syllabi where applicable:
-- deep learning / NLP / ML → search for fast.ai, DeepLearning.AI, Stanford CS229/CS224N
-- data engineering → search for DataTalks.Club, Zoomcamp
-- software systems → search for MIT 6.824, CMU 15-445
+**A2a. WebSearch** — find current (<YEAR>) roadmaps, authoritative syllabi (university courses, established programs), and community resource lists for the goal. The concept tree in A3 is cross-checked against these, so aim for breadth of sources.
 
 **A2b. context7** — for every framework/library the goal implies, resolve and query docs:
 ```
-mcp__plugin_context7_context7__resolve-library-id  topic="<library name>"
-mcp__plugin_context7_context7__query-docs  tokens=4000  topic="<library name> getting started overview"
+mcp__plugin_context7_context7__resolve-library-id  libraryName="<library name>"  query="getting started overview"
+mcp__plugin_context7_context7__query-docs  libraryId="<resolved /org/project>"  query="<library name> getting started overview"
 ```
 For broad goals (e.g. "AI engineering"), hit the top 3–5 implied libraries.
 
@@ -93,9 +85,9 @@ Example: "learn AI engineering" → `learn-ai-engineering`
 
 **Write plan, progress, and index files:** Read `{{SKILLS}}/curriculum/templates/plan-files.md` for the three file templates (plan.md, progress.md, and index.md). Fill all `<placeholder>` values and write to their target paths (`curricula/<slug>/plan.md`, `curricula/<slug>/progress.md`, `curricula/index.md`).
 
-**Generate `.ics` schedule — REQUIRED `AskUserQuestion` call:**
+**Generate `.ics` schedule:**
 
-After writing the plan files, call `AskUserQuestion` (as a separate call, not inline) with this question before A5:
+After writing the plan files and before A5, ask with `AskUserQuestion`:
 
 > "Generate a calendar .ics file for daily reminders? (one event per day at 08:00 IST, Obsidian deep-link in each event)"
 > Options: `Yes, generate it` / `Skip for now`
@@ -136,17 +128,12 @@ Derive `<YEAR>` from today's date (available in the session context) before runn
 
 Before generating, run all of the following in parallel:
 
-**B1a. Topic refresh:**
-- `WebSearch "<day topic> <goal> tutorial <YEAR>"`
-- `WebSearch "<day topic> best practices <YEAR>"`
+**B1a. Topic refresh:** WebSearch for current (<YEAR>) tutorials and best practices on the day's topic.
 
-**B1b. Library version lookup — for every library this day's practical will use:**
-- `WebSearch "latest stable <library> version <YEAR> pypi"` — cross-check against PyPI release page
-- `mcp__plugin_context7_context7__resolve-library-id` + `mcp__plugin_context7_context7__query-docs` for the resolved library — pull changelog / migration guide so deprecated APIs are avoided
+**B1b. Library version lookup — for every library this day's practical will use:** confirm the latest stable version against PyPI, and pull the changelog / migration guide via context7 so deprecated APIs are avoided.
 - If a newer major version exists (e.g. library was on v1.x at plan time, v2.x is now stable), **use the new version** and note the upgrade in a `> [!note]` callout at the top of the practical
 
-**B1c. Alternative technology check:**
-- `WebSearch "best library for <task> python <YEAR>"` — if a better-maintained or more widely adopted alternative has emerged since the plan was written, flag it to the user and ask whether to swap before generating
+**B1c. Alternative technology check:** if a better-maintained or more widely adopted alternative has emerged since the plan was written, flag it to the user and ask whether to swap before generating
 
 Pin every dependency in `day-NN/practical.md` to the **latest stable version confirmed in B1b**, not the version from plan-creation time.
 
@@ -184,7 +171,7 @@ At least one of the 4–5 Recall prompts must be drawn from these depth sections
 
 ### B3. Write `day-<NN>/practical.md`
 
-Type: `cookbook` (Procedure). Must pass Universal U1–U7 + Cookbook add-ons per Quality Rubric v3 (checks C1–C6).
+Type: `cookbook` (Procedure). Must pass Universal U1–U7 + Cookbook add-ons per Quality Rubric v3 (checks C1–C7).
 
 **Read** `{{SKILLS}}/curriculum/templates/practical.md` and fill every section. Write to `curricula/<slug>/day-<NN>/practical.md`.
 
@@ -198,7 +185,7 @@ Type: `reference` (lookup/quiz). Must pass Universal U1–U7 + Reference add-ons
 
 ### B5. Quality self-check
 
-Before updating progress, score each generated file against **Quality Rubric v3** (defined in `CLAUDE.md`). This mirrors what `/lint` would flag — run it here so the day is correct from the start.
+Before updating progress, score each generated file against **Quality Rubric v3** (canonical in `SCHEMA.md` § Typed Rubric v3). This mirrors what `/lint` would flag — run it here so the day is correct from the start.
 
 **Read** `{{SKILLS}}/curriculum/templates/quality-rubric.md` for the full check tables (U1–U7 + L1–L14 for concepts, C1–C6 for practical, R1–R3 for review). Score each file in turn, printing a PASS / FAIL line per criterion. For any FAIL, regenerate the missing/failing section inline before proceeding to B6. If all PASS, print `✓ Day <N> quality check passed` and continue to B6.
 
@@ -292,7 +279,7 @@ Read `curricula/<slug>/day-<nn>/practical.md`. Parse the `## Required outputs` t
 - `.pt` → `torch.load()` succeeds
 - `.png` → existence check only
 
-Write the adapted script to `curricula/<slug>/day-<nn>/grader.py` via Bash (never Write tool for Python files).
+Write the adapted script to `curricula/<slug>/day-<nn>/grader.py`.
 
 ### F4. Run grader
 

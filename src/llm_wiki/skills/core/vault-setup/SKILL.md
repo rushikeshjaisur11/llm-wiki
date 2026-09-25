@@ -12,7 +12,7 @@ Run from INSIDE the folder you want to become your vault.
 Skills live in `skills/` inside the llm-wiki repo. Python search tools live in `skills/_wiki/`.
 This step copies them to where Claude Code can find them and patches vault paths.
 
-### Ask two things:
+### Ask three things:
 
 1. **"What is the absolute path to your vault?"** (default: current working directory)
 2. **"Install globally (recommended) or locally (vault-only)?"**
@@ -58,13 +58,7 @@ SCRIPTS_PATH="$DEST/_wiki"
 # Use perl for cross-platform in-place edit (works on Linux, macOS, Git Bash/WSL)
 find "$DEST" -name "*.md" -exec perl -i -pe "s|{{VAULT}}|$VAULT_PATH|gi; s|{{SCRIPTS}}|$SCRIPTS_PATH|gi" {} +
 
-# 6. Register vault context globally (skip for local install)
-mkdir -p "$HOME/.claude"
-cat >> "$HOME/.claude/CLAUDE.md" << CTXEOF
-
-## My Personal Context
-At the start of every session, read $VAULT_PATH/CLAUDE.md for context about who I am, my work, and my conventions.
-CTXEOF
+# (vault context registration happens in STEP 4, after asking)
 
 # 7. Build initial search indexes (only if vault has content)
 if [ -f "$VAULT_PATH/wiki/index.md" ]; then
@@ -114,8 +108,7 @@ Get-ChildItem $DEST -Recurse -Filter "*.md" | ForEach-Object {
     Set-Content $_.FullName -NoNewline
 }
 
-# 6. Register vault context globally (skip for local)
-Add-Content "$env:USERPROFILE\.claude\CLAUDE.md" "`n## My Personal Context`nAt the start of every session, read $VAULT/CLAUDE.md for context about who I am, my work, and my conventions."
+# (vault context registration happens in STEP 4, after asking)
 
 # 7. Build initial search indexes (only if vault has content)
 if (Test-Path "$VAULT/wiki/index.md") {
