@@ -1,6 +1,6 @@
 ---
 name: uplift
-description: Bulk-fix low-scoring vault notes. Generates missing quality-rubric fields (tldr-callout, diagram, worked-example, when-not-to-use, see-also, version-pins, retrieval-prompts) using langchain/langgraph notes as gold templates. Promotes maturity tag. Raises every folder to ≥6/7 average score.
+description: Bulk-fix low-scoring vault notes — generate missing rubric fields (tldr-callout, diagram, worked-example, recall-prompts, see-also, version-pins), promote maturity tag, raise folder score to ≥6/7.
 ---
 
 # Uplift — Bulk Note Quality Fix

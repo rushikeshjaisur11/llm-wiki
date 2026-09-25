@@ -146,8 +146,7 @@ Create folder `curricula/<slug>/day-<NN>/` first (shell: `mkdir -p`). Write all 
 Derive this day's concept set from the plan's "Key concepts" column for day N:
 
 - **1 concept → 1 note:** write `concepts.md` (original behavior, fully backward-compatible).
-- **2–3 concepts → N notes:** write `concepts-01-<topic-slug>.md`, `concepts-02-<topic-slug>.md`, … — one atomic note per distinct concept, each fully self-contained (own declarative title, own diagram, own worked example, own when-not-to-use, own recall prompts). Do **not** also write a `concepts.md`; the numbered notes are the concepts for this day. Use a short kebab-case slug for each topic (e.g. `concepts-01-attention-mechanism.md`).
-- **>3 concepts in plan → warn + cap:** add a `> [!warning]` callout at the top of the first generated concept note: "Day <N> has >3 atomic concepts assigned in the plan. Only the first 3 are generated here — run `/curriculum replan` to redistribute the remaining concepts into adjacent days." Generate at most 3 concept notes.
+- **2+ concepts → N notes:** write `concepts-01-<topic-slug>.md`, `concepts-02-<topic-slug>.md`, … — one atomic note per distinct concept, each fully self-contained (own declarative title, own diagram, own worked example, own when-not-to-use, own recall prompts). Do **not** also write a `concepts.md`; the numbered notes are the concepts for this day. Use a short kebab-case slug for each topic (e.g. `concepts-01-attention-mechanism.md`). There is no upper cap on concept notes per day.
 - Set `needs_split: true` on any note that, despite best effort, still covers more than one coherent concept (for a later `/uplift` or `/lint` pass). Otherwise `needs_split: false`.
 
 **Within-day cross-linking for multi-note days:**
@@ -187,7 +186,7 @@ Type: `reference` (lookup/quiz). Must pass Universal U1–U7 + Reference add-ons
 
 Before updating progress, score each generated file against **Quality Rubric v3** (canonical in `SCHEMA.md` § Typed Rubric v3). This mirrors what `/lint` would flag — run it here so the day is correct from the start.
 
-**Read** `{{SKILLS}}/curriculum/templates/quality-rubric.md` for the full check tables (U1–U7 + L1–L14 for concepts, C1–C6 for practical, R1–R3 for review). Score each file in turn, printing a PASS / FAIL line per criterion. For any FAIL, regenerate the missing/failing section inline before proceeding to B6. If all PASS, print `✓ Day <N> quality check passed` and continue to B6.
+**Read** `{{SKILLS}}/curriculum/templates/quality-rubric.md` for the full check tables (U1–U7 + L1–L14 for concepts, C1–C7 for practical, R1–R3 for review). Score each file in turn, printing a PASS / FAIL line per criterion. For any FAIL, regenerate the missing/failing section inline before proceeding to B6. If all PASS, print `✓ Day <N> quality check passed` and continue to B6.
 
 ---
 
@@ -252,9 +251,8 @@ Called when user has marked days as "too easy / too hard / skipped" in `progress
 1. Read `progress.md` — find days with skip/hard/easy markers
 2. Re-run A2 research with context: `"<goal> <topic> for <starting_level + delta> learner"`
 3. Rewrite `plan.md` from `active_day + 1` forward, preserving completed days
-4. Archive old plan: `mv curricula/<slug>/plan.md curricula/<slug>/plan.v<N>.md`
-5. Write new `plan.md`
-6. Report: "Replanned days X–N. Old plan archived to plan.v1.md."
+4. Write new `plan.md` (overwrite in place — no versioned copies)
+5. Report: "Replanned days X–N. plan.md updated."
 
 ---
 
@@ -435,21 +433,21 @@ Answers:
 ## Behavior rules (always apply)
 
 1. **Anonymization** — never mention employer name in any generated file; use "our platform" / "our workload"
-2. **Day folders** — each day lives in its own `<slug>/day-<NN>/` folder containing `concepts*.md` (1–3 atomic concept notes per day — see B2a), `practical.md`, `review.md`, `grader.py`, and `outputs/`; never flat files at the slug root
-3. **Examples are concrete** — real numbers, real library names, real dataset rows; never `<placeholder>` or `<your_value>`
+2. **Day folders** — each day lives in its own `<slug>/day-<NN>/` folder containing `concepts*.md` (one atomic note per concept, no cap on count — see B2a), `practical.md`, `review.md`, `grader.py`, and `outputs/`; never flat files at the slug root
+3. **Examples are concrete** — real numbers, real library names, real dataset rows; never `<placeholder>` or `<your_value>`; concept notes must include at least one worked example that mimics a production scenario (realistic data/scale/constraint — not a toy `[1,2,3]` illustration)
 4. **Version-pin all code with latest stable versions** — every code block starts with `# tested: lib==version`; versions must be the latest stable release confirmed via B1b at day-generation time, not whatever was current at plan-creation time; never copy version pins from a prior day without re-checking
 5. **Quality Rubric v3** — apply U1–U7 universally + type-specific add-ons per note `type:`; verified by the B5 quality self-check (read `templates/quality-rubric.md`) before marking any day done:
    - `day-NN/concepts*.md` (**each** atomic concept note) → type `learning`: U1–U7 + L1–L14:
-     - L1 Intuition (mental model), L2 Formal definition, L3 2+ Worked examples with real code + real output, L4 Why does this work?, L5 Mermaid diagram (use `<br/>` not `\n`), L6 Common misconceptions table, L7 Trade-offs vs alternatives table, L8 Sources ≥2 dated citations, L9 day_label verbatim in frontmatter, L10 confidence:high + level: set
+     - L1 Intuition (mental model), L2 Formal definition, L3 2+ Worked examples with real code + real output (≥1 must mimic a production scenario — realistic data/scale + a surfaced constraint), L4 Why does this work?, L5 Mermaid diagram (use `<br/>` not `\n`), L6 Common misconceptions table, L7 Trade-offs vs alternatives table, L8 Sources ≥2 dated citations, L9 day_label verbatim in frontmatter, L10 confidence:high + level: set
      - **L11 Why this exists (motivation)** — problem it was invented to solve; names predecessor + limitation
      - **L12 Cost & complexity** — time/space/compute cost with real figures; O-notation where applicable
      - **L13 Edge cases & boundary conditions** — where the concept itself breaks down; distinct from runtime errors
      - **L14 Variations & extensions** — named variants and frontier extensions, one line each
-   - `day-NN/practical.md` → type `cookbook`: U1–U7 + version-pinned code (C1) + what-can-go-wrong table (C2) + prerequisite wikilink (C3) + Required outputs table with `day-<NN>-` filenames (C4) + checkpoint code (C5) + day_label verbatim (C6)
+   - `day-NN/practical.md` → type `cookbook`: U1–U7 + version-pinned code (C1) + what-can-go-wrong table (C2) + prerequisite wikilink (C3) + Required outputs table with `day-<NN>-` filenames (C4) + checkpoint code (C5) + day_label verbatim (C6) + production-scenario framing in `## Scenario` section (C7)
    - `day-NN/review.md` → type `reference`: U1–U7 + self-check questions table 5–10 rows (R1) + see-also links to concepts/practical/next-day (R2) + day_label in frontmatter and H1 (R3)
    - All files get `maturity: seedling` on creation; user promotes to `budding`/`evergreen` as they revise
    - **Depth means depth WITHIN one atomic concept** — the enriched template does NOT relax U3 (one idea per note). If writing any section reveals a second coherent idea, split per B2a first.
-6. **Recall prompts are mandatory** (U4) — concept notes get 4–5 `> [!question]` / `> [!answer]-` pairs; **at least one must be drawn from L11–L14** (cost bound, edge case, or named variant); practical and review get 2+ pairs; this is the highest-evidence retention intervention
+6. **Recall prompts are mandatory** (U4) — concept notes get 4–5 `> [!question]` / `> [!answer]-` pairs; **at least one must be drawn from L11–L14 or the production scenario in Example 2** (cost bound, edge case, named variant, or a production constraint surfaced there); practical and review get 2+ pairs; this is the highest-evidence retention intervention
 7. **Declarative titles** (U1) — concept note H1 states a claim ("Transformers use self-attention to relate tokens at any distance"), not a noun ("Attention Mechanism"); practical and review H1s may use the `day_label` phrase
 8. **Re-research per day** — do not reuse stale day-1 research; run targeted search before each day generation
 9. **Shell for file ops** — any copy/move uses Bash `cp`/`mv` or PowerShell `Move-Item`, never Write tool

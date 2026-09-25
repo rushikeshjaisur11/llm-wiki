@@ -1,6 +1,6 @@
 ---
 name: query
-description: Answer a question using the wiki. Runs search.py to find relevant pages (zero token cost), synthesizes an answer with wikilink citations, flags contradictions and gaps, and offers to file the answer back as a new wiki page. Use when asking anything that should be answered from accumulated knowledge. Supports multiple output formats.
+description: Answer any question from the wiki — runs search.py, synthesizes answer with wikilink citations, flags gaps, optionally files answer as a new note.
 ---
 
 # Query — Ask the Wiki

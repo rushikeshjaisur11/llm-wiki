@@ -360,7 +360,7 @@ When the user runs `/ingest` with no argument, or when an `inbox/` scan is perfo
    ```
    Read the returned note files. Note what's already known (definitions, gaps, existing coverage).
    If `NO_RESULTS`: fall back to reading `wiki/index.md` for keyword matching.
-2. `WebSearch` — at least 3 sources, prefer 2024–2026
+2. `WebSearch` — at least 3 sources, prefer results from the last 2 years up to today's date
 3. Show 2–3 sentence synthesis → ask: "Anything to emphasize or cut?"
 4. Write `research/<slug>.md`:
 
@@ -683,6 +683,11 @@ This step is mandatory after all modes.
    python {{SCRIPTS}}/build_embeddings.py
    ```
    For batch mode, always run full builds (not `--update`) after all notes are written.
+
+   **Bulk cross-link check** — runs after full builds in batch mode, OR after any ingest that writes ≥5 notes:
+   - Read `wiki/graph.json` and check `meta.dangling_links`
+   - If dangling count > 0, print: "⚠ Graph has N dangling wikilinks after this ingest. Run `/lint` to triage and fix cross-links."
+   - This is a reminder only — no automatic fix. The user decides when to run `/lint`.
 
 7. **Suggest related pages** (only if `wiki/embeddings.db` exists):
    ```

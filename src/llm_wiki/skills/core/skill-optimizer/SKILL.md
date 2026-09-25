@@ -1,6 +1,6 @@
 ---
 name: skill-optimizer
-description: Auto-improve any onboarded Claude Code SKILL.md using a mutate→evaluate→promote loop. No API key required — mutation, rollout simulation, and judging run natively through Claude Code. Usage: skill=<name> iterations=<N>
+description: Auto-improve a SKILL.md via mutate→evaluate→promote loop. Usage: skill=<name> iterations=<N>
 ---
 
 You are an expert skill optimizer. Improve a Claude Code SKILL.md through iterative experiments: propose a mutation, simulate its outputs, score them, keep the change only if it's better.

@@ -1,6 +1,6 @@
 ---
 name: vault-setup
-description: Interactive vault configurator. Asks the user to describe themselves in free text, then builds a personalized vault structure, CLAUDE.md, and slash commands. Wires skills globally or locally with path patching. Works with Obsidian, VS Code + Foam, Logseq, or plain markdown.
+description: Interactive vault configurator — builds personalized vault structure, CLAUDE.md, and skills wiring for Obsidian/VS Code/Logseq/plain markdown.
 ---
 
 # Vault Setup — Wiki Configurator
@@ -104,7 +104,7 @@ $SCRIPTS_PATH = $WIKI_DEST.Replace("\", "/")
 Get-ChildItem $DEST -Recurse -Filter "*.md" | ForEach-Object {
     (Get-Content $_.FullName -Raw) `
         -replace "(?i)" + [regex]::Escape("{{VAULT}}"), $VAULT `
-        -replace "(?i)" + [regex]::Escape("c:/Users/rushi/.claude/skills/_wiki"), $SCRIPTS_PATH |
+        -replace "(?i)" + [regex]::Escape("{{SCRIPTS}}"), $SCRIPTS_PATH |
     Set-Content $_.FullName -NoNewline
 }
 

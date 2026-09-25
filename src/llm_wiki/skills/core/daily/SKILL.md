@@ -18,6 +18,12 @@ Then check the inbox/ folder and list any unprocessed files found.
 Read the most relevant active project or client folder for context.
 Summarize the top 3 priorities for today based on recent notes.
 
+**Curriculum progress (non-blocking):**
+Read `{{VAULT}}/curricula/index.md` frontmatter `active:` for the active slug, then `curricula/<slug>/progress.md`:
+- Current day = `active_day` frontmatter; total days and topics come from the progress table
+- Surface as one line: `📚 <slug>: Day N / <total> — <today's topic> (Day N+1 next: <next topic>)`
+- If no current day found or plan unreadable, skip silently
+
 **Staleness nudge (non-blocking):**
 Run a quick check: scan frontmatter of all files in `learning/` for `last_verified` > TTL (use TTL rules from `{{VAULT}}/SCHEMA.md`). Report only the top 3 most overdue notes as:
 > "3 notes may be stale: [[langgraph/state-and-reducers]] (90 days overdue), … Run `/refresh <note>` to re-verify, or `/lint --quarterly` for a full report."

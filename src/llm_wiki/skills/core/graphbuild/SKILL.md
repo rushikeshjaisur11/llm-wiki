@@ -1,6 +1,6 @@
 ---
 name: graphbuild
-description: Rebuild the wiki knowledge graph and search indexes from scratch. Runs build_graph.py, build_routing.py, build_index.py, and build_embeddings.py in sequence, prints a community breakdown table with node counts and hub notes, and reports dangling links. Use after bulk ingests or when community assignments need refreshing.
+description: Rebuild wiki knowledge graph + search indexes (build_graph, build_routing, build_index, build_embeddings). Use after bulk ingests or when community assignments need refreshing.
 ---
 
 # Graphbuild — Rebuild the Wiki Knowledge Graph + Search Indexes
