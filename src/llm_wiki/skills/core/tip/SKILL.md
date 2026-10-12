@@ -71,6 +71,10 @@ Generates **1 note** per run, covering two distinct topics.
           fastapi/fastapi, astral-sh/{uv,ruff}, run
           `gh api repos/<r>/releases --jq '.[0:3][]|select(.prerelease==false)|.tag_name+" "+.published_at'`
           and keep releases published within 7 days; read the release notes for what is new.
+          **Notable means** a new minor/major version, or notes that mention a new feature,
+          deprecation/breaking change, performance number or security fix. Skip patch-only bumps,
+          dependency bumps, docs/CI fixes and sub-package tags (e.g. `langchain-openai==1.7.1`,
+          `cli==0.4.33`); if only a sub-package tag exists, read the repo's own notes first.
         - **B. GitHub Trending (star velocity).** `curl -fsS "https://github.com/trending/python?since=weekly"`
           and `.../trending?since=weekly`; each row has "N stars this week". Ignore `sponsors/`
           links. High velocity on a repo you haven't seen is the early signal.
