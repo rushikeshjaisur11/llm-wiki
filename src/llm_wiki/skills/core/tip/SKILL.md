@@ -61,26 +61,34 @@ Generates **1 note** per run, covering two distinct topics.
    - If a topic hint was given as an argument, that's topic 1; auto-pick topic 2 (below).
    - Otherwise topic 1 is always **GitHub Radar** (space 1 below) when it yields a qualifying
      repo; topic 2 rotates between spaces 2 and 3 (never the same as the previous tip's).
-     1. **GitHub Radar — early heads-up on new repos/releases before they go mainstream.**
-        Run these (`gh` is on the runner; `GH_TOKEN` is set; if `gh` fails fall back to `WebSearch`):
-        ```
-        D=$(date -d '-14 days' +%F)
-        for t in langgraph mcp rag llm-agents claude-code vector-database duckdb kafka dbt iceberg fastapi; do
-          gh search repos --topic $t --created ">$D" --sort stars --limit 5 \
-            --json fullName,stargazersCount,description,createdAt,license
-        done
-        ```
-        Also check latest releases of the stack's flagship repos for a notable minor/major
-        (`gh api repos/<owner>/<repo>/releases --jq '.[0:2][]|.tag_name+" "+.published_at'`), e.g.
-        langchain-ai/langgraph, langchain-ai/langchain, google/adk-python, pydantic/pydantic-ai,
-        modelcontextprotocol/servers, apache/{kafka,spark,airflow,iceberg}, duckdb/duckdb,
-        dbt-labs/dbt-core, fastapi/fastapi. Pick the repo with the strongest signal: fast star
-        growth relative to age, backed by a known org/maintainer, solving a real gap in the stack.
-        Skip meme/toy/awesome-list/"AI wrapper" repos, game/CAD/UI-kit repos, and repos that are
-        just a prompt pack. `WebFetch`/`gh api repos/<r>/readme` its README before writing; state
-        stars, created date, license and last-commit date from the API, not from memory. The note
-        must cover: what it does, the gap vs. incumbents, a maturity caveat (age/stars/license),
-        and a 1-2 command "try it" recipe.
+     1. **GitHub Radar — early heads-up on repos/releases before they go mainstream.**
+        Gather candidates from three sources (tested; `gh` + `curl` are on the runner, `GH_TOKEN`
+        is set; topic-only searches return mostly noise, so do NOT rely on them):
+        - **A. Releases of the stack's flagship repos (most reliable).** For each of
+          langchain-ai/{langgraph,langchain}, google/adk-python, pydantic/pydantic-ai,
+          modelcontextprotocol/{servers,python-sdk}, anthropics/{claude-code,anthropic-sdk-python},
+          apache/{kafka,spark,airflow,iceberg}, duckdb/duckdb, dbt-labs/dbt-core,
+          fastapi/fastapi, astral-sh/{uv,ruff}, run
+          `gh api repos/<r>/releases --jq '.[0:3][]|select(.prerelease==false)|.tag_name+" "+.published_at'`
+          and keep releases published within 7 days; read the release notes for what is new.
+        - **B. GitHub Trending (star velocity).** `curl -fsS "https://github.com/trending/python?since=weekly"`
+          and `.../trending?since=weekly`; each row has "N stars this week". Ignore `sponsors/`
+          links. High velocity on a repo you haven't seen is the early signal.
+        - **C. New repos with a star floor.** `gh search repos "<kw>" --created ">$(date -d '-21 days' +%F)"
+          --stars ">=300" --sort stars --limit 5 --json fullName,stargazersCount,createdAt,description`
+          for kw in agent, mcp, rag, langgraph, vector, streaming, lakehouse, sdk.
+        **Relevance gate** — keep only developer infrastructure a data/AI engineer would adopt:
+        agent/LLM frameworks and runtimes, MCP servers/SDKs, eval/observability, RAG/vector/search
+        engines, data/streaming/orchestration/query engines, Python tooling. Reject agent-skill or
+        prompt packs, UI/shader kits, games/CAD/modding, pentest/offensive tools, marketing
+        showcases, tutorials/awesome-lists, and repos whose only claim is a star count. Prefer
+        source A when it has a notable release (new major/minor, new feature, breaking change);
+        otherwise pick the best B/C repo. If A, B and C all yield nothing relevant, use the
+        newest notable release from A even if 8-14 days old, and say so in the "As of" line.
+        Before writing, read the README (`gh api repos/<r>/readme --jq .content | base64 -d`) and
+        take stars, created date, license and last-commit date from the API, never from memory.
+        The note must cover: what it does, the gap vs. incumbents, a maturity caveat
+        (age/stars/license), and a 1-2 command "try it" recipe.
      2. **What the user is actually learning (from the KB itself)** — scan *all* top-level
         domains under `{{VAULT}}/learning/` (`ai`, `data-eng`, `data-science`, `dev-tools`,
         `python`, `fastapi`, `foundations/dsa`, `foundations/ml`, `systems-design`, etc.) and
