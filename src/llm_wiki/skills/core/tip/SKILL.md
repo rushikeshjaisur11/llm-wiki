@@ -45,38 +45,55 @@ Generates **1 note** per run, covering two distinct topics.
    yet" and continue (the folder and index get created in step 4, not as an error). Note the
    last ~30 days of topics; never repeat one of them.
 
-3. **Pick two fresh, distinct topics.**
+3. **Pick two fresh, relevant, distinct topics.**
+   - **Relevance filter (apply to every candidate).** The reader is a data/AI engineer. Their
+     stack: Python, FastAPI/Pydantic, LangGraph/LangChain/Google ADK/MCP/RAG/agents/vector DBs,
+     Claude & Claude Code, Spark, Kafka, Airflow, dbt, Iceberg, Postgres/DuckDB/BigQuery, GCP/AWS,
+     Docker/K8s/Terraform, Git, ML/DS/DSA, distributed-systems concepts. Reject anything outside
+     it — in particular CVEs for vendor appliances/products they don't run (network gear, DVRs,
+     CMSs, Windows/Citrix/Cisco/etc.). A CVE qualifies only if it hits a package, runtime or
+     service in that stack, and then the note must say how to check exposure (affected versions
+     + one command, e.g. `pip show`/`pip-audit`). Never include a CVE just to fill a security slot.
+   - **Freshness filter.** The primary source's own date must be within the last 7 days (release,
+     advisory, blog post), or for a new GitHub repo, created within the last 14 days. Put an
+     "As of <date>" line in each topic. If nothing fresh qualifies, take a deeper-concept topic
+     from the KB instead — never backfill with weeks-old news dressed up as current.
    - If a topic hint was given as an argument, that's topic 1; auto-pick topic 2 (below).
-   - Otherwise survey three candidate spaces and pick one topic from two of them, for variety
-     (rotate which two so all three get used over time):
-     1. **What the user is actually learning (from the KB itself)** — scan *all* top-level
+   - Otherwise topic 1 is always **GitHub Radar** (space 1 below) when it yields a qualifying
+     repo; topic 2 rotates between spaces 2 and 3 (never the same as the previous tip's).
+     1. **GitHub Radar — early heads-up on new repos/releases before they go mainstream.**
+        Run these (`gh` is on the runner; `GH_TOKEN` is set; if `gh` fails fall back to `WebSearch`):
+        ```
+        D=$(date -d '-14 days' +%F)
+        for t in langgraph mcp rag llm-agents claude-code vector-database duckdb kafka dbt iceberg fastapi; do
+          gh search repos --topic $t --created ">$D" --sort stars --limit 5 \
+            --json fullName,stargazersCount,description,createdAt,license
+        done
+        ```
+        Also check latest releases of the stack's flagship repos for a notable minor/major
+        (`gh api repos/<owner>/<repo>/releases --jq '.[0:2][]|.tag_name+" "+.published_at'`), e.g.
+        langchain-ai/langgraph, langchain-ai/langchain, google/adk-python, pydantic/pydantic-ai,
+        modelcontextprotocol/servers, apache/{kafka,spark,airflow,iceberg}, duckdb/duckdb,
+        dbt-labs/dbt-core, fastapi/fastapi. Pick the repo with the strongest signal: fast star
+        growth relative to age, backed by a known org/maintainer, solving a real gap in the stack.
+        Skip meme/toy/awesome-list/"AI wrapper" repos, game/CAD/UI-kit repos, and repos that are
+        just a prompt pack. `WebFetch`/`gh api repos/<r>/readme` its README before writing; state
+        stars, created date, license and last-commit date from the API, not from memory. The note
+        must cover: what it does, the gap vs. incumbents, a maturity caveat (age/stars/license),
+        and a 1-2 command "try it" recipe.
+     2. **What the user is actually learning (from the KB itself)** — scan *all* top-level
         domains under `{{VAULT}}/learning/` (`ai`, `data-eng`, `data-science`, `dev-tools`,
         `python`, `fastapi`, `foundations/dsa`, `foundations/ml`, `systems-design`, etc.) and
         rotate across them — don't default to `ai` just because it's listed first; check which
-        domain hasn't had a tip in the last ~30 days and prefer it. E.g. a `learning/python/`
-        folder is a signal to look for new or interesting Python concepts (`asyncio` internals,
-        new stdlib features, notable PEPs); a `learning/data-eng/` folder signals
-        Kafka/Spark/dbt/Airflow updates; `learning/systems-design/` signals distributed-systems
-        concepts. Prefer topics that go a level deeper than what's already there, or that fill a
-        gap the KB's `wiki/graph.json` / `index.md` shows as thin, instead of restating existing
-        notes.
-     2. **Notable/new in broader tech** — `WebSearch` for what's genuinely new or notable in the
-        last ~2 weeks, sampling broadly across tech/CS rather than defaulting to AI: databases,
-        distributed systems, Python/language releases, dev-tooling, cloud platforms, security,
-        CS fundamentals — and AI/LLM (Claude/Claude Code, LangGraph, LangChain, Google ADK, RAG,
-        agents, vector DBs, model/framework releases) as one topic area among these, not the
-        default. Prefer primary sources (official docs/blogs/release notes) over aggregator
-        summaries.
-     3. **New open-source tools** — `WebSearch` for open-source tools/libraries/projects that
-        launched or hit a notable milestone (new repo, v1.0, major release, GitHub trending) in
-        the last ~2-4 weeks — e.g. new AI-infra tools (OpenRouter-style routers/gateways),
-        dev-tooling, databases, CLI utilities — sampled broadly, not just AI. Prefer ones adjacent
-        to what's in `learning/` so it lands relevant. What it does, why it exists (what gap it
-        fills vs. incumbents), and how to try it (install/CLI/repo link). `WebSearch`/`WebFetch`
-        its own repo/README/release notes as the primary source, not aggregator roundups.
-     Pick topics from two *different* spaces when candidates exist in more than one; only
-     collapse to one space if the other two truly have nothing fresh this run — topics must
-     still be distinct from each other and from the last ~30 days.
+        domain hasn't had a tip in the last ~30 days and prefer it. Prefer topics that go a level
+        deeper than what's already there, or that fill a gap the KB's `wiki/graph.json` /
+        `index.md` shows as thin, instead of restating existing notes. Pair it with the newest
+        release/news that touches the same tool (freshness filter still applies to that part).
+     3. **Notable/new in the stack** — `WebSearch` for what shipped in the last 7 days in the
+        stack above (releases, deprecations, breaking changes, new model/framework features,
+        in-stack security advisories). Prefer primary sources (official docs/blogs/release
+        notes/changelogs) over aggregator summaries; open the primary page and read its date.
+   - Topics must be distinct from each other and from the last ~30 days.
    - Dedup check (run once per candidate topic):
      ```
      python {{SCRIPTS}}/search.py "<candidate topic>" --top 5
