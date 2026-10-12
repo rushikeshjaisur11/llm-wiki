@@ -30,6 +30,10 @@ Generates **1 note** per run, covering two distinct topics.
    before `<TODAY>`. If `{{VAULT}}/tips/` doesn't exist yet, skip this step. For each stale file:
    - `git mv {{VAULT}}/tips/<file>.md {{VAULT}}/tips/archive/<file>.md`
      (create `tips/archive/` first if missing).
+   - Rewrite every other inbound wikilink too: replace `[[tips/<file>` with `[[tips/archive/<file>`
+     across `{{VAULT}}/` (weekly digests, wiki/, learning/ — not `tips/archive/` itself), e.g.
+     `grep -rl '\[\[tips/<file>' --include=*.md . | xargs sed -i 's#\[\[tips/<file>#[[tips/archive/<file>#g'`.
+     Otherwise the digests' links break the moment a tip ages out.
    - In `tips/index.md`, move its `## Tips log` line into an `## Archive` section at the
      bottom (create if missing), rewriting the wikilink target to `tips/archive/<file>`.
    Skip a file already under `tips/archive/`. This keeps `tips/` holding only the trailing
