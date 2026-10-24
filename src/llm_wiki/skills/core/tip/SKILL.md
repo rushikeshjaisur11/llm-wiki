@@ -1,6 +1,6 @@
 ---
 name: tip
-description: Write today's "note of the day" — research two fresh, non-duplicate tech/CS topics (drawn from what the vault's learning/ tree shows is being studied, broader tech news, or new open-source tools) and file one rubric-compliant note into tips/. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
+description: Write today's "note of the day" — research three fresh, non-duplicate tech/CS topics (drawn from what the vault's learning/ tree shows is being studied, broader tech news, or new open-source tools) and file one rubric-compliant note into tips/. Runs manually or via the daily automation. Usage: /tip | /tip <optional topic hint> | /tip --digest (weekly roundup mode).
 ---
 
 Vault root: `{{VAULT}}/`
@@ -10,14 +10,14 @@ Vault root: `{{VAULT}}/`
 | Input | Mode |
 |---|---|
 | `--digest` | Weekly digest — see **Digest mode** below |
-| topic hint text | Tip mode, using the hint as topic 1 and auto-picking topic 2 |
-| no argument | Tip mode, auto-pick both topics |
+| topic hint text | Tip mode, using the hint as topic 1 and auto-picking topics 2-3 |
+| no argument | Tip mode, auto-pick all three topics |
 
 ---
 
 ## Tip mode (default)
 
-Generates **1 note** per run, covering two distinct topics.
+Generates **1 note** per run, covering **three** distinct topics.
 
 1. **Determine TODAY.** Run `date +%F` (the workflow sets `TZ=Asia/Kolkata`, so this
    resolves to the IST calendar date regardless of the runner's UTC clock or the model's
@@ -49,7 +49,26 @@ Generates **1 note** per run, covering two distinct topics.
    yet" and continue (the folder and index get created in step 4, not as an error). Note the
    last ~30 days of topics; never repeat one of them.
 
-3. **Pick two fresh, relevant, distinct topics.**
+2b. **Catch-up window, watchlist and backlog.** A failed run (usage limit) leaves a gap; the
+   next successful run must cover what was missed, most important first.
+   - **GAP**: days between the newest tip date in `tips/index.md` (Tips log + Archive) and
+     `<TODAY>`. **WINDOW = clamp(GAP + 1, 7, 21)** days — use it instead of the fixed 7 days
+     in the Freshness filter below (and 14 → WINDOW + 7 for new repos).
+   - **Watchlist** `{{VAULT}}/tips/watchlist.md` (user-maintained, one `- <topic> — <hint URL>`
+     per line). Entries there are *must-cover*: they outrank everything else, are exempt from
+     the freshness filter (the user asked for them), and still need a primary source and the
+     dedup check. Delete a line once its topic is written.
+   - **Backlog** `{{VAULT}}/tips/backlog.md` (same line format, written by this skill). Entries
+     are important items an earlier run found but had no slot for. Consume them next, after the
+     watchlist, dropping any older than 21 days.
+   - **Importance rank** when more candidates qualify than the 3 slots: (1) watchlist,
+     (2) breaking change / deprecation / in-stack security fix, (3) new major or minor release
+     or GA of a flagship tool, (4) new protocol/spec/vendor feature adopted across the stack
+     (e.g. an MCP pattern), (5) trending repo, (6) deeper-concept topic. Put the top 3 in the
+     note; append the next ≤5 qualifying candidates to `backlog.md` as
+     `- <topic> — <primary URL> — found <TODAY>`.
+
+3. **Pick three fresh, relevant, distinct topics.**
    - **Relevance filter (apply to every candidate).** The reader is a data/AI engineer. Their
      stack: Python, FastAPI/Pydantic, LangGraph/LangChain/Google ADK/MCP/RAG/agents/vector DBs,
      Claude & Claude Code, Spark, Kafka, Airflow, dbt, Iceberg, Postgres/DuckDB/BigQuery, GCP/AWS,
@@ -58,13 +77,17 @@ Generates **1 note** per run, covering two distinct topics.
      CMSs, Windows/Citrix/Cisco/etc.). A CVE qualifies only if it hits a package, runtime or
      service in that stack, and then the note must say how to check exposure (affected versions
      + one command, e.g. `pip show`/`pip-audit`). Never include a CVE just to fill a security slot.
-   - **Freshness filter.** The primary source's own date must be within the last 7 days (release,
-     advisory, blog post), or for a new GitHub repo, created within the last 14 days. Put an
+   - **Freshness filter.** The primary source's own date must be within the last WINDOW days (step 2b;
+     7 when no gap) — release, advisory, blog post — or for a new GitHub repo, created within
+     WINDOW + 7 days. Put an
      "As of <date>" line in each topic. If nothing fresh qualifies, take a deeper-concept topic
      from the KB instead — never backfill with weeks-old news dressed up as current.
-   - If a topic hint was given as an argument, that's topic 1; auto-pick topic 2 (below).
-   - Otherwise topic 1 is always **GitHub Radar** (space 1 below) when it yields a qualifying
-     repo; topic 2 rotates between spaces 2 and 3 (never the same as the previous tip's).
+   - Watchlist and backlog entries (step 2b) fill slots first.
+   - If a topic hint was given as an argument, that's topic 1; auto-pick the rest (below).
+   - Otherwise the remaining slots are: **GitHub Radar** (space 1 below) when it yields a
+     qualifying repo; **KB-driven** (space 2) ; **stack news** (space 3). If a space yields
+     nothing, give its slot to the next-ranked candidate from any space — never leave a slot
+     empty and never repeat a space-2 domain used in the previous tip.
      1. **GitHub Radar — early heads-up on repos/releases before they go mainstream.**
         Gather candidates from three sources (tested; `gh` + `curl` are on the runner, `GH_TOKEN`
         is set; topic-only searches return mostly noise, so do NOT rely on them):
@@ -109,6 +132,14 @@ Generates **1 note** per run, covering two distinct topics.
         stack above (releases, deprecations, breaking changes, new model/framework features,
         in-stack security advisories). Prefer primary sources (official docs/blogs/release
         notes/changelogs) over aggregator summaries; open the primary page and read its date.
+        Run these sweeps every time (releases-only checks miss cross-vendor features such as
+        MCP "code mode", which no flagship repo's release notes announce):
+        - `WebSearch` "MCP" + "Claude Code" + "Claude API" new feature this week, and read
+          modelcontextprotocol.io spec changelog, anthropic.com/news, and the Claude Code
+          changelog (`gh api repos/anthropics/claude-code/releases --jq '.[0:3][].body'`).
+        - `WebSearch` the trending patterns in agent tooling (e.g. code mode / code execution
+          with MCP, tool search, programmatic tool calling, agent skills) and keep a pattern
+          if a major vendor or flagship repo shipped it within WINDOW days.
    - Topics must be distinct from each other and from the last ~30 days.
    - Dedup check (run once per candidate topic):
      ```
@@ -116,13 +147,13 @@ Generates **1 note** per run, covering two distinct topics.
      ```
      If the vault already has solid coverage, pick the next candidate.
 
-4. **Write one note with both topics** → `{{VAULT}}/tips/<TODAY>-<slug1>-<slug2>.md`. Follow
+4. **Write one note with all three topics** → `{{VAULT}}/tips/<TODAY>-<slug1>-<slug2>-<slug3>.md` (keep slugs short; ≤ 3 words each). Follow
    `{{VAULT}}/SCHEMA.md` in full (required frontmatter + Typed Rubric U1–U7), repeating the body
-   sections once per topic under an `##` heading per topic:
+   sections once per topic (keep each topic tight — three topics must stay a ~5 minute read) under an `##` heading per topic:
 
    ```markdown
    ---
-   title: <Declarative title covering both topics (U1)>
+   title: <Declarative title covering all three topics (U1)>
    created: <TODAY>
    updated: <TODAY>
    last_verified: <TODAY>
@@ -133,8 +164,9 @@ Generates **1 note** per run, covering two distinct topics.
    - tips
    - <topic-1-tag>
    - <topic-2-tag>
+   - <topic-3-tag>
    type: learning
-   source: <primary URL(s) for both topics>
+   source: <primary URL(s) for all three topics>
    related: []
    ---
 
@@ -143,7 +175,7 @@ Generates **1 note** per run, covering two distinct topics.
    > **Up:** [[tips/index]]
 
    > [!tldr]
-   > <2-3 lines covering both topics — what changed / what it is / why it matters>
+   > <3 lines, one per topic — what changed / what it is / why it matters>
 
    ---
 
@@ -185,14 +217,33 @@ Generates **1 note** per run, covering two distinct topics.
 
    ---
 
+   ## Topic 3: <Topic 3 title>
+
+   <!-- 3-5 sentences: the concrete update, release, or best-practice being covered -->
+
+   ```mermaid
+   flowchart LR
+       A[Before] --> B[Change] --> C[After]
+   ```
+
+   > [!example] Worked example
+   > <!-- required whenever the topic is a language/library: runnable code (not prose),
+   >      concrete numbers, or a CLI command — no placeholders -->
+
+   > [!question] <one specific retrievable fact>
+
+   > [!answer]- <concrete answer>
+
+   ---
+
    ## When Not To Use / Anti-pattern
 
-   <!-- one concrete condition per topic where it doesn't apply -->
+   <!-- one concrete condition for each of the three topics where it doesn't apply -->
 
    ---
 
    ## See Also
-   <!-- 3-5 wikilinks covering both topics -->
+   <!-- 3-5 wikilinks covering all three topics -->
    ```
 
    Apply the vault's **anonymization rule** (no employer names) from `{{VAULT}}/CLAUDE.md`.
@@ -204,9 +255,10 @@ Generates **1 note** per run, covering two distinct topics.
      ```markdown
      ## Tips log
      ```
-   - Prepend one line under `## Tips log`:
+   - Prepend one line under `## Tips log` (and make sure `tips/watchlist.md` / `tips/backlog.md`
+     no longer list topics just written):
      ```
-     - <TODAY> — [[tips/<TODAY>-<slug1>-<slug2>|<Title>]]
+     - <TODAY> — [[tips/<TODAY>-<slug1>-<slug2>-<slug3>|<Title>]]
      ```
 
 6. → **[Wiki Update]** (below).
