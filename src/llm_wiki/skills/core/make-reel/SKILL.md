@@ -46,6 +46,8 @@ scene transitions. The orb `BeatsReel` below is reel 1's world — do not reuse 
 (`chunkLines` captions, `lib/viz/util` easing, word-synced `at()` lookups — see `shots/reel-2`).
 No stray glyphs on screen: no `§`, `␣`, `→`, sub-word token fragments or token ids; plain ASCII labels.
 Keep: safe area, captions at y≈1470, one idea per scene, frame 0 thumbnail-grade.
+Something must always move (slow camera sway/drift, twinkle): any 2 s fully-still stretch fails the QA gate's
+freeze check — reel 3's takeaway hold did.
 **Owner rule (2026-11-24): no house style.** Use whatever animation the concept needs — motion graphics, 2D/3D
 (`@remotion/three`), data viz (d3), kinetic type, code/terminal (`lib/terminal`), UI mockups (`lib/browser`),
 Lottie, rough.js sketch, stick figures — and mix them inside one reel if that explains it better. No tool is
