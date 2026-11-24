@@ -27,7 +27,7 @@ what they say, then continue from the first stage whose output is missing or sta
 - Structure: **hook** (concrete pain/incident; frame 0 fully composed) → **why** → **how** (2–4 scenes,
   each with its own visual) → **payoff** (before/after or metric) → **takeaway** (one line, then the SPOKEN tease
   "Next, we'll see <next topic in plain words>." — owner rule; lint enforces it; matches `next` on screen).
-- 200–300 spoken words (voices run ~3.2 words/s at TEMPO 0.90; lines are chained with ~0.5 s breaths, no long pauses), 6–10 scenes, 60–90 s. Plain, precise, slightly witty English.
+- 160–240 spoken words (Turbo narrator runs ~2.6 words/s incl. breaths; lines are chained with ~0.5 s breaths, no long pauses), 6–10 scenes, 60–90 s. Plain, precise, slightly witty English.
   No "comment below" / "follow for more" CTAs.
 - beats.json per `reels/_schema.md`. For each content scene choose the catalog visual that SHOWS the
   concept (read every description). If none fits, design ONE `newViz` (max 1 per reel): add the
@@ -52,6 +52,25 @@ freeze check — reel 3's takeaway hold did.
 (`@remotion/three`), data viz (d3), kinetic type, code/terminal (`lib/terminal`), UI mockups (`lib/browser`),
 Lottie, rough.js sketch, stick figures — and mix them inside one reel if that explains it better. No tool is
 the default; don't lean on one style across reels.
+
+**Owner rule (2026-11-25): reels 2–4 still read as one template — break it.** They all share the same skeleton:
+progress scale/strip across the top, boxed headline under it, one card in the middle, caption plate at the
+bottom, camera pan/feed between scenes. Concretely:
+- **No top progress scale/ruler/barcode/strip.** It is not important; drop it. Series label (e.g. "RAG 04") only
+  on frame 0, small, and part of the world (not a header bar).
+- **No fixed scene skeleton.** Do not put a headline box at the top of every scene. Layout changes with the idea:
+  full-bleed visual with no headline, one huge number, a split screen, a zoom INTO the object, a top-down
+  diagram, kinetic type filling the frame. At most half the scenes may carry an on-screen headline.
+- **Animation = the mechanism, accurately.** Each scene animates what really happens, step by step, in the
+  right order, with real numbers computed in code — e.g. RRF: show each rank, compute 1/(60+rank) live, add the
+  two scores, re-sort; cosine: rotate actual vectors and show the angle/number updating; chunking: real text split
+  at real token counts. No decorative motion that doesn't map to a step; no "card pops in" as the whole visual.
+  Every step lands on the word that names it. Illustrative data is fine (labelled), wrong mechanics are not.
+- **Motion vocabulary per topic**, not reused: pick from morphs, path drawing, particle flows, physics (springs,
+  collisions), 3D (`@remotion/three`), camera dolly/zoom into detail, masks/reveals, counters, graph re-layouts.
+  Transitions come from the content (one object becomes the next), not a generic pan/feed.
+- **Before coding, write `## Visual design` in script.md**: per scene — the shot (layout + what moves), which real
+  step each motion shows, the word it syncs to, and one line "differs from reels N-1/N-2 because …".
 
 **Stick-scene tool (optional, one of many)** (hand-drawn stick figure working a physical prop — lever, stamp,
 filing cabinet, conveyor): fits only when a process or cause→result reads best as a physical metaphor. Follow `.claude/skills/stick-scene/SKILL.md` for the craft
@@ -122,7 +141,11 @@ Cue times from scene `startSec` + the visual's own timing. 3–5 cues total. Do 
 start + 1 s, every scene's hero moment, and the last frame. READ every PNG and score:
 hook frame thumbnail-grade · one idea per scene · centre visual is about THIS concept · text legible at
 phone size · nothing overlapping · nothing critical in bottom 380 px / right 160 px · orb state matches
-the narration · captions in sync. Fix and re-render; max 3 loops. Still failing → write `failure.md`,
+the narration · captions in sync. **Sameness check:** put 4 mid-scene frames of this reel next to 4 from each of
+the previous two reels (`outbox/` masters, ffmpeg hstack). If a viewer could mistake them for the same series
+template (same top strip, same headline-box + card + plate stack, same transition) → redesign, don't polish.
+**Accuracy check:** for each scene, write in qa_report.md the step it shows and confirm the on-screen numbers
+are what the code computes and the order matches the real algorithm. Fix and re-render; max 3 loops. Still failing → write `failure.md`,
 set `status` = `failed`, stop.
 
 ## Stage 7 — raw render + caption
