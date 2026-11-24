@@ -119,6 +119,10 @@ Nothing is compulsory: use a tag only where a real narrator would make that soun
 a frustrating failure, a chuckle at an ironic twist, `[surprised]` on a counter-intuitive number, `[whispering]`
 for an aside/secret, `[happy]` on the fix landing. Put it at a sentence or clause break, never mid-phrase. Match
 the emotion to the moment; a reel with zero tags is fine if none fits. Never two tags back to back.
+**Owner (2026-11-25, reel 5): the `[sigh]` sounded "so much artificial".** Treat every sound tag as suspect:
+carry emotion with wording, punctuation and rhythm first ("And the bot still says... no."). A sound tag ships
+only after you render that exact line with and without it, listen-check (transcribe + duration), and offer the
+owner both takes as an audition. Default: no sound tags.
 
 `.venv-cb\Scripts\python tools/gen_voice_chatterbox.py --beats <beats> --emit-ts remotion/src/shots/reel-N/vo.gen.ts`
 (set `PYTHONPATH=tools`). Default engine = Chatterbox Turbo cloned from `media/library/voice/narrator-ref.wav`
