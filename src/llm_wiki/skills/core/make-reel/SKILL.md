@@ -88,9 +88,23 @@ scene content in `stages={{ s1: (local, theme, dur) => ... }}` using `GlassCard`
 ## Stage 4 — voice
 Write the VO to be SPOKEN: short sentences, a question or two, signposts ("Here's the thing.", "Step one."),
 a punchline line per scene. Read it aloud in your head; flat lists of facts sound flat.
-`VOICE_ENGINE=chatterbox` (default, expressive; bold delivery on hook/payoff/takeaway, lively elsewhere):
+
+**Natural human delivery (owner, 2026-11-25; new reels only — never re-voice existing reels).** Talk like a person
+explaining to a friend: contractions, "So…", "And…", "Here's the thing.", a trailing "…" before a reveal, a
+rhetorical question then its answer. Emotion goes in an optional `vo[].say` (what gets spoken); `vo[].text`
+stays the clean caption/lint text with the same words minus tags. Tags (Chatterbox Turbo, each verified to render
+as sound or tone, never read out):
+- sounds: `[sigh]` `[chuckle]` `[laugh]` (adds "haha") `[gasp]` `[groan]` (adds "uh") `[clear throat]` `[sniff]` `[cough]` `[shush]` (adds "shh")
+- tone for the line that follows: `[happy]` `[surprised]` `[sarcastic]` `[dramatic]` `[whispering]` `[angry]` `[fear]` `[crying]` (`[narration]` = neutral reset; never `[advertisement]` — garbles words)
+Nothing is compulsory: use a tag only where a real narrator would make that sound or shift tone — a sigh at
+a frustrating failure, a chuckle at an ironic twist, `[surprised]` on a counter-intuitive number, `[whispering]`
+for an aside/secret, `[happy]` on the fix landing. Put it at a sentence or clause break, never mid-phrase. Match
+the emotion to the moment; a reel with zero tags is fine if none fits. Never two tags back to back.
+
 `.venv-cb\Scripts\python tools/gen_voice_chatterbox.py --beats <beats> --emit-ts remotion/src/shots/reel-N/vo.gen.ts`
-(set `PYTHONPATH=tools`). Each line is transcribed and re-rolled up to 3 takes if words differ from the script.
+(set `PYTHONPATH=tools`). Default engine = Chatterbox Turbo cloned from `media/library/voice/narrator-ref.wav`
+(owner pick, natural pace, no time-stretch: `TEMPO` 1.0). `--engine standard` = the reels 1–4 voice (pair with
+`--tempo 0.9`). Runs on the NVIDIA GPU only. Each line is transcribed and re-rolled up to 3 takes if words differ from the script.
 `VOICE_ENGINE=kokoro`: `.venv-voice\Scripts\python tools/gen_voice_kokoro.py …` (same args).
 `VOICE_ENGINE=elevenlabs`: upstream `tools/gen_voice.py` with `--emit-ts`.
 Both rewrite vo/scene times and `format.durationSec` — copy the new duration into `compositionConfig`.
