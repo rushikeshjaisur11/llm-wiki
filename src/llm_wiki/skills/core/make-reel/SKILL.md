@@ -27,7 +27,7 @@ what they say, then continue from the first stage whose output is missing or sta
 - Structure: **hook** (concrete pain/incident; frame 0 fully composed) → **why** → **how** (2–4 scenes,
   each with its own visual) → **payoff** (before/after or metric) → **takeaway** (one line, then the SPOKEN tease
   "Next, we'll see <next topic in plain words>." — owner rule; lint enforces it; matches `next` on screen).
-- 200–300 spoken words (voices run ~3.5 words/s; lines are chained with ~0.5 s breaths, no long pauses), 6–10 scenes, 60–90 s. Plain, precise, slightly witty English.
+- 200–300 spoken words (voices run ~3.2 words/s at TEMPO 0.90; lines are chained with ~0.5 s breaths, no long pauses), 6–10 scenes, 60–90 s. Plain, precise, slightly witty English.
   No "comment below" / "follow for more" CTAs.
 - beats.json per `reels/_schema.md`. For each content scene choose the catalog visual that SHOWS the
   concept (read every description). If none fits, design ONE `newViz` (max 1 per reel): add the
@@ -46,9 +46,13 @@ scene transitions. The orb `BeatsReel` below is reel 1's world — do not reuse 
 (`chunkLines` captions, `lib/viz/util` easing, word-synced `at()` lookups — see `shots/reel-2`).
 No stray glyphs on screen: no `§`, `␣`, `→`, sub-word token fragments or token ids; plain ASCII labels.
 Keep: safe area, captions at y≈1470, one idea per scene, frame 0 thumbnail-grade.
+**Owner rule (2026-11-24): no house style.** Use whatever animation the concept needs — motion graphics, 2D/3D
+(`@remotion/three`), data viz (d3), kinetic type, code/terminal (`lib/terminal`), UI mockups (`lib/browser`),
+Lottie, rough.js sketch, stick figures — and mix them inside one reel if that explains it better. No tool is
+the default; don't lean on one style across reels.
 
-**Stick-scene option** (hand-drawn stick figure working a physical prop — lever, stamp, filing cabinet, conveyor):
-good when the concept is a process or a cause→result. Follow `.claude/skills/stick-scene/SKILL.md` for the craft
+**Stick-scene tool (optional, one of many)** (hand-drawn stick figure working a physical prop — lever, stamp,
+filing cabinet, conveyor): fits only when a process or cause→result reads best as a physical metaphor. Follow `.claude/skills/stick-scene/SKILL.md` for the craft
 (read its `references/craft.md` and the `examples/`; pitch 2–3 metaphors unless the owner said go; style rules:
 ink `#141414`, white paper, one accent, few words, figure never hidden, show the result). Reel-specific
 differences from that skill:
