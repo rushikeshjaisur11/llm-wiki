@@ -47,6 +47,23 @@ scene transitions. The orb `BeatsReel` below is reel 1's world — do not reuse 
 No stray glyphs on screen: no `§`, `␣`, `→`, sub-word token fragments or token ids; plain ASCII labels.
 Keep: safe area, captions at y≈1470, one idea per scene, frame 0 thumbnail-grade.
 
+**Stick-scene option** (hand-drawn stick figure working a physical prop — lever, stamp, filing cabinet, conveyor):
+good when the concept is a process or a cause→result. Follow `.claude/skills/stick-scene/SKILL.md` for the craft
+(read its `references/craft.md` and the `examples/`; pitch 2–3 metaphors unless the owner said go; style rules:
+ink `#141414`, white paper, one accent, few words, figure never hidden, show the result). Reel-specific
+differences from that skill:
+- Scene file goes in `remotion/src/shots/reel-N/stick/<id>.js` (template: `.claude/skills/stick-scene/templates/scene.js`).
+  Render with `<StickScene scene="<id>" playAt={<local s of the spoken trigger word>} width={948} height={628} />`
+  from `lib/stick`; import `lib/stick` first, then `'./stick/<id>.js'`. One stick scene = one beat; `playAt`
+  per beat, and the scene's `dur` must fit inside the beat. `n` picks a play variant.
+- Size for phone: drawing scale = min(h/230, w/width) — keep the scene `width` ≈ 330 for a 948×628 card
+  (≈ 2.7×), so 9–11 px labels read at phone size. Put it on a white card (the scene is ink-on-paper).
+- No `Math.random()` in scene code (Remotion renders frames out of order); derive variation from `S.n`/`S.t`.
+- QA with this repo's `scripts/frames.mjs` (Stage 6); the skill's own `frames.mjs`/`motion.mjs` (need
+  `playwright@1.56.1` in a scratch dir) are optional extra checks for joint jumps / arm-through-face.
+- Demo: composition `StickDemo` (`shots/demo/StickDemo.tsx`). Runtime `lib/stick/stick.js` is vendored unchanged
+  (nilbuild/stick-scene @ ca84311, MIT) — don't edit it; update by re-copying.
+
 Orb template (reel 1 only), `remotion/src/shots/reel-N/ReelN<Pascal>.tsx`:
 ```tsx
 import React from 'react';
