@@ -74,6 +74,33 @@ bottom, camera pan/feed between scenes. Concretely:
 - **Before coding, write `## Visual design` in script.md**: per scene — the shot (layout + what moves), which real
   step each motion shows, the word it syncs to, and one line "differs from reels N-1/N-2 because …".
 
+**Owner rule (2026-11-26): explanation animation comes first.** The "how" scenes are the product. Explainer grammar:
+- **One persistent diagram per concept that evolves** — add, move, recolour, split, merge parts of the same
+  objects across beats instead of cutting to a new picture. A new scene continues the previous object (the list
+  becomes the bars, the dot becomes the point on the curve).
+- **Camera directs attention**: one world larger than the frame; zoom/pan (spring) to the part being explained,
+  pull back to show where it fits. Overview -> detail -> overview.
+- **Focus**: whatever the narrator names is full-strength; everything else dims to ~30 %. Never two things
+  competing for attention at once.
+- **Progressive disclosure**: build the diagram piece by piece on the words that name each piece; never show the
+  finished diagram first and talk over it.
+- **Callouts**: arrows / brackets draw (evolvePath) from a label to the exact thing named, anchored with measured
+  text positions (`textWidth`), at the moment it is named.
+- **Show the computation**: numbers are produced on screen (operands appear, combine, result counts up), and every
+  number on screen is computed in code from the illustrative/sourced inputs.
+- **End on the changed state**: each how-beat ends with a visible before/after held for >= 0.6 s.
+
+**Motion kit (`remotion/src/lib/motion`, 2026-11-26 research pass) — use it in every new reel:**
+`EASE.enter/exit/move` (Material emphasized curves: enter decelerates, exit accelerates), `tw(t,a,d,ease)`,
+`spr(t,a,fps,'snappy'|'gentle'|'bouncy')` (Remotion `spring()`), `<Scenes>` (outgoing scene fully gone before the
+next lands — no crossfade overlaps), `<Grain>` (animated, text-free film grain on top: hides 8-bit banding on dark
+gradients and keeps frames changing), `textWidth()` (layout-utils `measureText`), `SAFE` zones. Shape morphs:
+`interpolatePath` / `evolvePath` from `@remotion/paths`. Motion blur: `CameraMotionBlur` from
+`@remotion/motion-blur` only around fast-moving objects (expensive; `HtmlInCanvasMotionBlur` needs Remotion >= 4.0.5xx).
+**Top safe zone**: nothing critical above y = 260 (Instagram's top UI covers ~210-250 px; estimates) — together
+with bottom 380 px / right 160 px. Render settings live in `scripts/render-all.mjs` (`jpegQuality: 100`,
+`x264Preset: 'slow'`; JPEG default 80 softened text and banded gradients).
+
 **Stick-scene tool (optional, one of many)** (hand-drawn stick figure working a physical prop — lever, stamp,
 filing cabinet, conveyor): fits only when a process or cause→result reads best as a physical metaphor. Follow `.claude/skills/stick-scene/SKILL.md` for the craft
 (read its `references/craft.md` and the `examples/`; pitch 2–3 metaphors unless the owner said go; style rules:
@@ -129,7 +156,7 @@ owner both takes as an audition. Default: no sound tags.
 `.venv-cb\Scripts\python tools/gen_voice_chatterbox.py --beats <beats> --emit-ts remotion/src/shots/reel-N/vo.gen.ts`
 (set `PYTHONPATH=tools`). Default engine = Chatterbox Turbo cloned from `media/library/voice/narrator-ref.wav`
 (owner pick, natural pace, no time-stretch: `TEMPO` 1.0). `--engine standard` = the reels 1–4 voice (pair with
-`--tempo 0.9`). Runs on the NVIDIA GPU only. Each line is transcribed and re-rolled up to 3 takes if words differ from the script.
+`--tempo 0.9`). Runs on the NVIDIA GPU only. Each line is transcribed (Whisper, check only) and re-rolled up to 3 takes if words differ from the script; word times come from MMS forced alignment of the script (Whisper stamps drift 100s of ms and broke caption sync on reel 5).
 `VOICE_ENGINE=kokoro`: `.venv-voice\Scripts\python tools/gen_voice_kokoro.py …` (same args).
 `VOICE_ENGINE=elevenlabs`: upstream `tools/gen_voice.py` with `--emit-ts`.
 Both rewrite vo/scene times and `format.durationSec` — copy the new duration into `compositionConfig`.
